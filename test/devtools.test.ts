@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import { describe, it } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { deflateRawSync, deflateSync, gzipSync } from 'node:zlib';
 import { defineMessage, uint8ArrayToBase64 } from '@omnibuf/core';
 import { decodeOmniBufTree, findNodeAtByteOffset, formatDecodedJson } from '../src/decoder/tree.js';
@@ -392,5 +396,60 @@ describe('Layer 3: Recursive OmniBuf field tree, byte offsets, and JSON export',
         assert.ok(m.decoded && m.decoded.nodes.length >= 1);
       }
     }
+  });
+});
+
+describe('Store packaging: Chrome Web Store and Firefox AMO compliance', () => {
+  const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+
+  it('validates manifest constraints and emits separate Chrome, Firefox, and AMO source zips', () => {
+    const rawManifest = JSON.parse(
+      readFileSync(path.join(rootDir, 'public', 'manifest.json'), 'utf8'),
+    );
+    assert.equal(rawManifest.manifest_version, 3);
+    assert.equal(rawManifest.permissions, undefined);
+    assert.equal(rawManifest.host_permissions, undefined);
+    assert.ok(rawManifest.description.length <= 132);
+    assert.deepEqual(rawManifest.browser_specific_settings?.gecko?.data_collection_permissions, {
+      required: ['none'],
+    });
+
+    if (!existsSync(path.join(rootDir, 'dist', 'manifest.json'))) {
+      execFileSync(process.execPath, ['scripts/build.mjs'], { cwd: rootDir });
+    }
+
+    execFileSync(process.execPath, ['scripts/pack.mjs'], {
+      cwd: rootDir,
+      env: { ...process.env, RELEASE_VERSION: 'v0.2.3' },
+    });
+
+    const chromeZip = path.join(rootDir, 'artifacts', 'omnibuf-devtools-chrome.zip');
+    const firefoxZip = path.join(rootDir, 'artifacts', 'omnibuf-devtools-firefox.zip');
+    const sourceZip = path.join(rootDir, 'artifacts', 'omnibuf-devtools-source.zip');
+    assert.equal(existsSync(chromeZip), true);
+    assert.equal(existsSync(firefoxZip), true);
+    assert.equal(existsSync(sourceZip), true);
+
+    const chromeManifest = JSON.parse(
+      execFileSync('unzip', ['-p', chromeZip, 'manifest.json'], { encoding: 'utf8' }),
+    );
+    assert.equal(chromeManifest.version, '0.2.3');
+    assert.equal(chromeManifest.browser_specific_settings, undefined);
+
+    const chromeEntries = execFileSync('unzip', ['-Z1', chromeZip], { encoding: 'utf8' });
+    assert.equal(chromeEntries.includes('.map'), false);
+
+    const firefoxManifest = JSON.parse(
+      execFileSync('unzip', ['-p', firefoxZip, 'manifest.json'], { encoding: 'utf8' }),
+    );
+    assert.equal(firefoxManifest.version, '0.2.3');
+    assert.equal(firefoxManifest.browser_specific_settings?.gecko?.id, 'devtools@omnibuf.com');
+    assert.deepEqual(
+      firefoxManifest.browser_specific_settings?.gecko?.data_collection_permissions,
+      { required: ['none'] },
+    );
+
+    // Restore default manifest version in artifacts/
+    execFileSync(process.execPath, ['scripts/pack.mjs'], { cwd: rootDir });
   });
 });

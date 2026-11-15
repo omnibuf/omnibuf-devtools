@@ -3,7 +3,8 @@
   "name": "OmniBuf DevTools",
   "short_name": "OmniBuf",
   "version": "0.1.0",
-  "description": "Inspect OmniBuf HTTP, ConnectRPC, gRPC-Web, and .obuf binary payloads as an expandable field tree with byte offsets and JSON export.",
+  "description": "Inspect OmniBuf HTTP, ConnectRPC, gRPC-Web, and .obuf payloads as an interactive field tree.",
+  "homepage_url": "https://omnibuf.com",
   "devtools_page": "devtools.html",
   "icons": {
     "16": "icons/icon-16.png",
@@ -17,7 +18,10 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "devtools@omnibuf.com",
-      "strict_min_version": "115.0"
+      "strict_min_version": "140.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   }
 }

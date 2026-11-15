@@ -58,8 +58,11 @@ Ordinary Protobuf traffic (`application/proto`, `application/grpc-web+proto`) is
 just install
 just build
 
-# Optional: package artifacts/omnibuf-devtools.zip
+# Package Chrome, Firefox, and Mozilla AMO source zips into artifacts/
 just pack
+
+# Generate 1280x800 24-bit RGB store listing screenshots into artifacts/store-screenshots/
+just store-screenshots
 ```
 
 ### Chrome / Edge / Brave / Chromium
@@ -76,14 +79,38 @@ just pack
 
 ---
 
+## Automated Store Releases
+
+Pushing a `v*` git tag (for example `v0.1.0`) triggers [`.github/workflows/release.yml`](./.github/workflows/release.yml). That workflow stamps the tag version into the packaged manifests, publishes a GitHub Release with `omnibuf-devtools-chrome.zip`, `omnibuf-devtools-firefox.zip`, `omnibuf-devtools-source.zip`, and `checksums.txt`, and submits updates directly to the Chrome Web Store and Firefox Add-ons (AMO).
+
+### Chrome Web Store Secrets
+
+Google requires creating the initial item once in the Chrome Web Store Developer Dashboard (`omnibuf-devtools-chrome.zip` plus the `1280x800` screenshots in `artifacts/store-screenshots/`). Add these repository secrets afterwards for automated tag publishing via Chrome Web Store API v2:
+
+- `CHROME_PUBLISHER_ID`: Developer account Publisher ID from the Chrome Web Store dashboard.
+- `CHROME_EXTENSION_ID`: Assigned 32-character item ID.
+- `CHROME_CLIENT_ID`, `CHROME_CLIENT_SECRET`, `CHROME_REFRESH_TOKEN`: Google Cloud OAuth 2.0 credentials authorized for the `https://www.googleapis.com/auth/chromewebstore` scope.
+
+### Firefox Add-ons (AMO) Secrets
+
+Generate API credentials at `https://addons.mozilla.org/developers/addon/api/key/` and add two repository secrets:
+
+- `FIREFOX_API_KEY`: JWT issuer string.
+- `FIREFOX_API_SECRET`: JWT secret key.
+
+AMO submissions automatically upload both `omnibuf-devtools-firefox.zip` and `omnibuf-devtools-source.zip` for deterministic reviewer verification.
+
+---
+
 ## Development & CI
 
 ```bash
-just test         # Run Layer 1, Layer 2, and Layer 3 test suites
-just lint         # ESLint + strict TypeScript typecheck
-just fmt-check    # Prettier format verification
-just screenshots  # Regenerate docs/screenshots/*.png via headless Chrome
-just ci           # Full check (fmt-check, lint, build, test)
+just test               # Run Layer 1, Layer 2, Layer 3, and packaging tests
+just lint               # ESLint + strict TypeScript typecheck
+just fmt-check          # Prettier format verification
+just screenshots        # Regenerate docs/screenshots/*.png via headless Chrome
+just store-screenshots  # Generate 1280x800 24-bit RGB store screenshots
+just ci                 # Full check (fmt-check, lint, build, test)
 ```
 
 ## License

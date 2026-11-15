@@ -1,0 +1,143 @@
+name: Release & Publish Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing vX.Y.Z tag to republish to Chrome Web Store / Firefox AMO'
+        required: false
+        type: string
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Build Archives & Publish GitHub Release
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@v5
+        with:
+          install: true
+
+      - name: Install dependencies
+        run: just install
+
+      - name: Run CI checks
+        run: just ci
+
+      - name: Package Chrome, Firefox, and AMO source archives
+        env:
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          if [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            RELEASE_VERSION="$TAG" just pack
+          else
+            just pack
+          fi
+          (cd artifacts && sha256sum omnibuf-devtools-*.zip > checksums.txt)
+
+      - name: Upload packaged archives for store jobs
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-archives
+          path: |
+            artifacts/omnibuf-devtools-*.zip
+            artifacts/checksums.txt
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          TAG="${INPUT_TAG:-${GITHUB_REF_NAME}}"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" artifacts/omnibuf-devtools-*.zip artifacts/checksums.txt --clobber
+          else
+            gh release create "$TAG" artifacts/omnibuf-devtools-*.zip artifacts/checksums.txt --title "$TAG" --generate-notes
+          fi
+
+  publish-chrome:
+    name: Publish to Chrome Web Store
+    needs: release
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@v5
+        with:
+          install: true
+
+      - name: Download packaged archives
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archives
+          path: artifacts
+
+      - name: Submit Chrome archive via Chrome Web Store API v2
+        env:
+          CHROME_PUBLISHER_ID: ${{ secrets.CHROME_PUBLISHER_ID }}
+          CHROME_EXTENSION_ID: ${{ secrets.CHROME_EXTENSION_ID }}
+          CHROME_CLIENT_ID: ${{ secrets.CHROME_CLIENT_ID }}
+          CHROME_CLIENT_SECRET: ${{ secrets.CHROME_CLIENT_SECRET }}
+          CHROME_REFRESH_TOKEN: ${{ secrets.CHROME_REFRESH_TOKEN }}
+          CHROME_PUBLISH_TYPE: ${{ vars.CHROME_PUBLISH_TYPE || 'DEFAULT_PUBLISH' }}
+        run: |
+          if [[ -z "${CHROME_EXTENSION_ID:-}" || -z "${CHROME_PUBLISHER_ID:-}" ]]; then
+            echo "::notice::Skipping Chrome Web Store publish: configure CHROME_PUBLISHER_ID, CHROME_EXTENSION_ID, CHROME_CLIENT_ID, CHROME_CLIENT_SECRET, and CHROME_REFRESH_TOKEN in repository secrets."
+            exit 0
+          fi
+          pnpm run publish:chrome
+
+  publish-firefox:
+    name: Publish to Firefox Add-ons (AMO)
+    needs: release
+    runs-on: ubuntu-24.04
+    if: startsWith(github.ref, 'refs/tags/v') || inputs.tag != ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@v5
+        with:
+          install: true
+
+      - name: Download packaged archives
+        uses: actions/download-artifact@v4
+        with:
+          name: release-archives
+          path: artifacts
+
+      - name: Submit Firefox + source archives via AMO API v5
+        env:
+          FIREFOX_API_KEY: ${{ secrets.FIREFOX_API_KEY }}
+          FIREFOX_API_SECRET: ${{ secrets.FIREFOX_API_SECRET }}
+          FIREFOX_CHANNEL: ${{ vars.FIREFOX_CHANNEL || 'listed' }}
+        run: |
+          if [[ -z "${FIREFOX_API_KEY:-}" || -z "${FIREFOX_API_SECRET:-}" ]]; then
+            echo "::notice::Skipping Firefox AMO publish: configure FIREFOX_API_KEY and FIREFOX_API_SECRET in repository secrets."
+            exit 0
+          fi
+          pnpm run publish:firefox

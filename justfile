@@ -10,7 +10,7 @@ install:
 build:
     pnpm run build
 
-# Package unpacked extension into artifacts/omnibuf-devtools.zip
+# Package Chrome, Firefox, and AMO source archives into artifacts/
 pack: build
     pnpm run pack
 
@@ -18,11 +18,15 @@ pack: build
 screenshots: build
     pnpm run screenshots
 
+# Generate 1280x800 24-bit RGB store screenshots in artifacts/store-screenshots/
+store-screenshots: build
+    pnpm run screenshots:store
+
 # Format all source and documentation files
 fmt:
     pnpm run fmt
 
-# Check code formatting without modifying files
+# Verify code formatting
 fmt-check:
     pnpm run fmt:check
 
