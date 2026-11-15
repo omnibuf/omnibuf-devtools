@@ -14,6 +14,10 @@ build:
 pack: build
     pnpm run pack
 
+# Regenerate documentation screenshots in docs/screenshots/ via headless Chrome
+screenshots: build
+    pnpm run screenshots
+
 # Format all source and documentation files
 fmt:
     pnpm run fmt

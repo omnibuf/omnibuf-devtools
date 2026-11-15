@@ -6,6 +6,16 @@
 
 Manifest V3 browser Developer Tools extension for inspecting **[OmniBuf v0.1](https://omnibuf.com/spec)** HTTP responses, ConnectRPC unary and server-streaming calls, gRPC-Web streams, and local `.obuf` capture files. Built on [`@omnibuf/core`](https://github.com/omnibuf/omnibuf-es/tree/main/packages/omnibuf) and [`@omnibuf/web`](https://github.com/omnibuf/omnibuf-es/tree/main/packages/omnibuf-web).
 
+![OmniBuf DevTools dark workstation inspecting a gzipped ConnectRPC stream](./docs/screenshots/desktop-dark.png)
+
+|                           Light Workstation Theme                           |                       ConnectRPC `EndStreamResponse` Metadata                        |
+| :-------------------------------------------------------------------------: | :----------------------------------------------------------------------------------: |
+| ![OmniBuf DevTools light workstation](./docs/screenshots/desktop-light.png) | ![ConnectRPC EndStreamResponse metadata envelope](./docs/screenshots/stream-end.png) |
+
+|                     Narrow Dock: Captured Traffic                     |                             Narrow Dock: Field Tree                              |                    Narrow Dock: 8-Byte Hex & ASCII                     |
+| :-------------------------------------------------------------------: | :------------------------------------------------------------------------------: | :--------------------------------------------------------------------: |
+| ![Mobile traffic capture list](./docs/screenshots/mobile-traffic.png) | ![Mobile field tree and byte slice footer](./docs/screenshots/mobile-fields.png) | ![Mobile 8-byte hex and ASCII view](./docs/screenshots/mobile-hex.png) |
+
 ---
 
 ## Architecture
@@ -69,10 +79,11 @@ just pack
 ## Development & CI
 
 ```bash
-just test       # Run Layer 1, Layer 2, and Layer 3 test suites
-just lint       # ESLint + strict TypeScript typecheck
-just fmt-check  # Prettier format verification
-just ci         # Full check (fmt-check, lint, build, test)
+just test         # Run Layer 1, Layer 2, and Layer 3 test suites
+just lint         # ESLint + strict TypeScript typecheck
+just fmt-check    # Prettier format verification
+just screenshots  # Regenerate docs/screenshots/*.png via headless Chrome
+just ci           # Full check (fmt-check, lint, build, test)
 ```
 
 ## License

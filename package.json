@@ -8,6 +8,7 @@
   "scripts": {
     "build": "node scripts/build.mjs",
     "pack": "node scripts/pack.mjs",
+    "screenshots": "node scripts/screenshots.mjs",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint . && pnpm run typecheck",
