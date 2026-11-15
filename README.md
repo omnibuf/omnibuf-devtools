@@ -1,7 +1,7 @@
 # OmniBuf DevTools (`omnibuf-devtools`)
 
 [![Wire Spec: v0.1](https://img.shields.io/badge/spec-v0.1-111111?style=flat&labelColor=111111&color=FF4F18)](https://omnibuf.com/spec)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](./LICENSE)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](./LICENSE)
 [![Website](https://img.shields.io/badge/website-omnibuf.com-111111?style=flat&labelColor=111111&color=D4FF33)](https://omnibuf.com)
 
 Manifest V3 browser Developer Tools extension for inspecting **[OmniBuf v0.1](https://omnibuf.com/spec)** HTTP responses, ConnectRPC unary and server-streaming calls, gRPC-Web streams, and local `.obuf` capture files. Built on [`@omnibuf/core`](https://github.com/omnibuf/omnibuf-es/tree/main/packages/omnibuf) and [`@omnibuf/web`](https://github.com/omnibuf/omnibuf-es/tree/main/packages/omnibuf-web).
@@ -88,4 +88,4 @@ just ci           # Full check (fmt-check, lint, build, test)
 
 ## License
 
-Released under the [MIT License](./LICENSE).
+Released under the [Apache 2.0 License](./LICENSE).
