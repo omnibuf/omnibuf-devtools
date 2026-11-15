@@ -8,11 +8,11 @@
     <link rel="stylesheet" href="./panel.css" />
   </head>
   <body>
-    <div id="app" class="workstation" data-mobile-screen="list" data-mobile-tab="fields">
+    <div id="app" class="workstation" data-mobile-screen="list" data-hex-open="false">
       <header class="topbar" role="banner">
         <div class="topbar-main">
           <div class="brand-cluster">
-            <svg class="brand-mark" viewBox="0 0 64 64" width="20" height="20" aria-hidden="true">
+            <svg class="brand-mark" viewBox="0 0 64 64" width="18" height="18" aria-hidden="true">
               <rect x="8" y="8" width="52" height="52" rx="10" fill="#FF4F18" />
               <rect
                 x="4"
@@ -28,7 +28,7 @@
               <rect x="22" y="22" width="16" height="16" rx="2" fill="#D4FF33" />
             </svg>
             <span class="brand-title">OmniBuf</span>
-            <span class="brand-spec">v0.1</span>
+            <span id="demo-badge" class="demo-pill" hidden>Demo</span>
           </div>
 
           <div class="topbar-actions">
@@ -39,157 +39,103 @@
               multiple
               hidden
             />
-            <button type="button" id="btn-open-obuf" class="btn-tool" title="Open local .obuf file">
-              Open .obuf
+            <button
+              type="button"
+              id="btn-open-obuf"
+              class="btn-quiet"
+              title="Open local .obuf file"
+            >
+              Open
             </button>
-            <button type="button" id="btn-clear" class="btn-tool" title="Clear captured traffic">
+            <button type="button" id="btn-clear" class="btn-quiet" title="Clear captured requests">
               Clear
             </button>
             <button
               type="button"
               id="btn-theme"
-              class="btn-tool"
-              title="Switch panel color theme"
-              aria-label="Switch panel color theme"
-            >
-              Dark
-            </button>
+              class="btn-icon"
+              title="Switch theme"
+              aria-label="Switch theme"
+            ></button>
           </div>
         </div>
 
         <div class="topbar-controls">
-          <div class="seg-group" role="group" aria-label="Traffic capture filter">
+          <div class="seg-group" role="group" aria-label="Traffic scope">
             <button type="button" id="scope-omnibuf" class="seg-btn is-active" aria-pressed="true">
               OmniBuf <span id="count-omnibuf" class="seg-count">0</span>
             </button>
             <button type="button" id="scope-all" class="seg-btn" aria-pressed="false">
-              All HTTP <span id="count-all" class="seg-count">0</span>
+              All <span id="count-all" class="seg-count">0</span>
             </button>
           </div>
 
-          <label class="search-box" aria-label="Filter captured requests">
+          <label class="search-box" aria-label="Filter requests">
             <input
               type="search"
               id="request-filter"
-              placeholder="Filter path..."
+              placeholder="Filter..."
               autocomplete="off"
               spellcheck="false"
             />
-          </label>
-
-          <label
-            class="check-inline preserve-toggle"
-            title="Keep captured network requests across page reloads"
-          >
-            <input type="checkbox" id="preserve-log" />
-            <span>Preserve log</span>
           </label>
         </div>
       </header>
 
       <div id="workspace" class="workspace-grid">
-        <aside class="pane pane-traffic" aria-label="Captured network responses">
-          <div class="pane-header">
-            <span class="pane-title">Captured Traffic</span>
-            <span id="capture-status" class="pane-meta">Waiting</span>
-          </div>
+        <aside class="pane pane-traffic" aria-label="Captured requests">
           <div id="request-list" class="request-list" role="listbox" aria-label="Requests"></div>
         </aside>
 
-        <main class="pane pane-tree" aria-label="OmniBuf protocol and field tree">
-          <div id="inspector-header" class="inspector-header" hidden>
-            <div class="req-summary-row">
-              <div class="req-identity">
+        <main class="pane pane-main" aria-label="Decoded response">
+          <div id="inspector-bar" class="inspector-bar" hidden>
+            <div class="inspector-bar-left">
+              <button
+                type="button"
+                id="btn-mobile-back"
+                class="btn-quiet btn-mobile-back"
+                aria-label="Back to requests"
+              ></button>
+
+              <div class="view-tabs" role="tablist" aria-label="Response view">
                 <button
                   type="button"
-                  id="btn-mobile-back"
-                  class="btn-tool btn-mobile-back"
-                  aria-label="Back to captured traffic list"
+                  id="vtab-tree"
+                  class="view-tab is-active"
+                  role="tab"
+                  aria-selected="true"
                 >
-                  Traffic
+                  Tree
                 </button>
-                <span id="req-method-badge" class="method-badge">POST</span>
-                <span id="req-path" class="req-path" title=""></span>
-              </div>
-              <div class="req-badges">
-                <span id="schema-badge" class="meta-badge"></span>
-                <span id="wire-size-badge" class="meta-badge"></span>
-              </div>
-            </div>
-
-            <div class="adapter-toolbar">
-              <label class="adapter-select-wrap">
-                <span class="adapter-label">Protocol</span>
-                <select id="protocol-select" class="select-tool">
-                  <option value="auto">Auto</option>
-                  <option value="raw">Plain HTTP / .obuf</option>
-                  <option value="connect-unary">Connect Unary</option>
-                  <option value="connect-streaming">Connect Streaming</option>
-                  <option value="grpc-web">gRPC-Web</option>
-                  <option value="grpc-web-text">gRPC-Web Text</option>
-                </select>
-              </label>
-
-              <div class="export-group">
-                <button type="button" id="btn-copy-json" class="btn-tool">Copy JSON</button>
-                <button type="button" id="btn-export-json" class="btn-tool">Export .json</button>
                 <button
                   type="button"
-                  id="btn-save-obuf"
-                  class="btn-tool"
-                  title="Download raw message .obuf"
+                  id="vtab-json"
+                  class="view-tab"
+                  role="tab"
+                  aria-selected="false"
                 >
-                  Save .obuf
+                  JSON
+                </button>
+                <button
+                  type="button"
+                  id="vtab-headers"
+                  class="view-tab"
+                  role="tab"
+                  aria-selected="false"
+                >
+                  Headers
                 </button>
               </div>
+
+              <span id="schema-type-hint" class="schema-type-hint" hidden></span>
             </div>
 
-            <div
-              id="mobile-view-tabs"
-              class="mobile-view-tabs"
-              role="tablist"
-              aria-label="Inspector view"
-            >
-              <button
-                type="button"
-                id="mtab-fields"
-                class="detail-tab is-active"
-                role="tab"
-                aria-selected="true"
+            <div class="inspector-bar-right">
+              <label
+                id="field-filter-wrap"
+                class="search-box search-box-compact"
+                aria-label="Filter fields"
               >
-                Fields
-              </button>
-              <button
-                type="button"
-                id="mtab-hex"
-                class="detail-tab"
-                role="tab"
-                aria-selected="false"
-              >
-                Hex
-              </button>
-              <button
-                type="button"
-                id="mtab-json"
-                class="detail-tab"
-                role="tab"
-                aria-selected="false"
-              >
-                JSON
-              </button>
-              <button
-                type="button"
-                id="mtab-headers"
-                class="detail-tab"
-                role="tab"
-                aria-selected="false"
-              >
-                Headers
-              </button>
-            </div>
-
-            <div id="tree-controls-bar" class="tree-controls-bar">
-              <label class="search-box search-box-compact" aria-label="Filter decoded fields">
                 <input
                   type="search"
                   id="field-filter"
@@ -199,94 +145,95 @@
                 />
               </label>
 
-              <label class="check-inline" title="Display inline Field #0 SchemaMeta wire node">
-                <input type="checkbox" id="toggle-field0" />
-                <span>Field #0</span>
-              </label>
+              <button type="button" id="btn-copy-json" class="btn-quiet" title="Copy JSON">
+                Copy
+              </button>
+              <button
+                type="button"
+                id="btn-toggle-hex"
+                class="btn-quiet"
+                aria-pressed="false"
+                title="Toggle hex inspector"
+              >
+                Hex
+              </button>
 
-              <div class="toolbar-spacer"></div>
+              <details id="more-menu" class="more-menu">
+                <summary
+                  id="more-menu-trigger"
+                  class="btn-icon"
+                  aria-label="More options"
+                  title="More options"
+                ></summary>
+                <div class="more-popover">
+                  <label class="menu-field">
+                    <span>Protocol</span>
+                    <select id="protocol-select" class="select-tool">
+                      <option value="auto">Auto</option>
+                      <option value="raw">Plain HTTP / .obuf</option>
+                      <option value="connect-unary">Connect Unary</option>
+                      <option value="connect-streaming">Connect Streaming</option>
+                      <option value="grpc-web">gRPC-Web</option>
+                      <option value="grpc-web-text">gRPC-Web Text</option>
+                    </select>
+                  </label>
 
-              <div class="btn-pair">
-                <button type="button" id="btn-expand-all" class="btn-tool">Expand</button>
-                <button type="button" id="btn-collapse-all" class="btn-tool">Collapse</button>
-              </div>
+                  <label class="menu-check">
+                    <input type="checkbox" id="toggle-field0" />
+                    <span>Show Field #0 schema</span>
+                  </label>
+
+                  <label class="menu-check">
+                    <input type="checkbox" id="preserve-log" />
+                    <span>Preserve log on reload</span>
+                  </label>
+
+                  <div class="menu-sep"></div>
+
+                  <button type="button" id="btn-expand-all" class="menu-item">Expand all</button>
+                  <button type="button" id="btn-collapse-all" class="menu-item">
+                    Collapse all
+                  </button>
+
+                  <div class="menu-sep"></div>
+
+                  <button type="button" id="btn-export-json" class="menu-item">Save .json</button>
+                  <button type="button" id="btn-save-obuf" class="menu-item">Save .obuf</button>
+                </div>
+              </details>
             </div>
           </div>
 
           <div id="warning-banner" class="warning-banner" hidden></div>
-
           <div
             id="envelope-strip"
             class="envelope-strip"
             role="tablist"
-            aria-label="Stream envelopes"
+            aria-label="Stream frames"
             hidden
           ></div>
-
-          <div id="tree-viewport" class="tree-viewport"></div>
-
-          <div id="mobile-byte-footer" class="mobile-byte-footer" hidden>
-            <div id="mobile-byte-summary" class="mobile-byte-summary"></div>
-            <button type="button" id="btn-mobile-jump-hex" class="btn-tool">Hex slice</button>
-          </div>
+          <div id="main-viewport" class="main-viewport"></div>
         </main>
 
-        <section class="pane pane-detail" aria-label="Byte offsets, JSON, and headers">
-          <div class="detail-tabs" role="tablist" aria-label="Detail view">
+        <aside id="pane-hex" class="pane pane-hex" aria-label="Hex inspector" hidden>
+          <div class="hex-bar">
+            <span class="hex-bar-title">Hex</span>
+            <span id="hex-bar-meta" class="hex-bar-meta"></span>
             <button
               type="button"
-              id="tab-hex"
-              class="detail-tab is-active"
-              role="tab"
-              aria-selected="true"
-              aria-controls="panel-hex"
-            >
-              Hex &amp; Offsets
-            </button>
-            <button
-              type="button"
-              id="tab-json"
-              class="detail-tab"
-              role="tab"
-              aria-selected="false"
-              aria-controls="panel-json"
-            >
-              Decoded JSON
-            </button>
-            <button
-              type="button"
-              id="tab-headers"
-              class="detail-tab"
-              role="tab"
-              aria-selected="false"
-              aria-controls="panel-headers"
-            >
-              Headers &amp; Meta
-            </button>
+              id="btn-close-hex"
+              class="btn-icon"
+              aria-label="Close hex panel"
+              title="Close hex panel"
+            ></button>
           </div>
-
-          <div id="panel-hex" class="detail-body" role="tabpanel" aria-labelledby="tab-hex"></div>
-          <div
-            id="panel-json"
-            class="detail-body"
-            role="tabpanel"
-            aria-labelledby="tab-json"
-            hidden
-          ></div>
-          <div
-            id="panel-headers"
-            class="detail-body"
-            role="tabpanel"
-            aria-labelledby="tab-headers"
-            hidden
-          ></div>
-        </section>
+          <div id="panel-hex" class="hex-body"></div>
+        </aside>
       </div>
 
       <div id="drop-overlay" class="drop-overlay" hidden>
         <div class="drop-card">
-          <span class="drop-title">Drop .obuf capture file to inspect</span>
-          <span class="drop-sub">Decodes raw OmniBuf packets and .obuf.gz archives locally</span>
+          <span class="drop-title">Drop .obuf file</span>
         </div>
       </div>
 

@@ -1,4 +1,3 @@
-import { toHex } from '@omnibuf/web';
 import {
   getDevToolsThemeName,
   isRunningInDevTools,
@@ -22,10 +21,9 @@ import {
 import type { ProtocolId } from '../protocol/detect.js';
 import { alignHexWindow, renderHexInspector } from './hexView.js';
 
-type ThemePref = 'auto' | 'dark' | 'light';
-type DetailTab = 'hex' | 'json' | 'headers';
+type ThemeMode = 'dark' | 'light';
+type ViewTab = 'tree' | 'json' | 'headers';
 type MobileScreen = 'list' | 'detail';
-type MobileTab = 'fields' | DetailTab;
 
 interface PanelState {
   items: CapturedItem[];
@@ -35,14 +33,14 @@ interface PanelState {
   fieldFilter: string;
   preserveLog: boolean;
   showField0: boolean;
-  themePref: ThemePref;
+  theme: ThemeMode;
   selectedItemId: string | null;
   selectedEnvelopeIdx: number;
   selectedNodeId: string | null;
   expandedNodeIds: Set<string>;
-  detailTab: DetailTab;
+  activeTab: ViewTab;
+  hexOpen: boolean;
   mobileScreen: MobileScreen;
-  mobileTab: MobileTab;
   hexWindowStart: number;
   inspected: InspectedTrafficResult | null;
   inspectSeq: number;
@@ -56,14 +54,14 @@ const state: PanelState = {
   fieldFilter: '',
   preserveLog: false,
   showField0: false,
-  themePref: 'auto',
+  theme: 'dark',
   selectedItemId: null,
   selectedEnvelopeIdx: 0,
   selectedNodeId: null,
   expandedNodeIds: new Set(),
-  detailTab: 'hex',
+  activeTab: 'tree',
+  hexOpen: false,
   mobileScreen: 'list',
-  mobileTab: 'fields',
   hexWindowStart: 0,
   inspected: null,
   inspectSeq: 0,
@@ -93,7 +91,7 @@ function showToast(msg: string): void {
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => {
     toast.hidden = true;
-  }, 2200);
+  }, 2000);
 }
 
 async function copyText(text: string, label: string): Promise<void> {
@@ -129,86 +127,117 @@ function downloadBlob(bytes: Uint8Array | string, filename: string, mime: string
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function applyTheme(): void {
-  const resolved = state.themePref === 'auto' ? getDevToolsThemeName() : state.themePref;
-  document.documentElement.dataset.theme = resolved;
-  const label =
-    state.themePref === 'auto'
-      ? `Auto (${resolved === 'dark' ? 'Dark' : 'Light'})`
-      : state.themePref === 'dark'
-        ? 'Theme: Dark'
-        : 'Theme: Light';
-  el<HTMLButtonElement>('btn-theme').textContent = label;
-}
-
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
-function createBackArrowIcon(): SVGSVGElement {
+function createSvg(size: number, viewBox = `0 0 ${size} ${size}`): SVGSVGElement {
   const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 12 12');
-  svg.setAttribute('width', '12');
-  svg.setAttribute('height', '12');
+  svg.setAttribute('viewBox', viewBox);
+  svg.setAttribute('width', String(size));
+  svg.setAttribute('height', String(size));
   svg.setAttribute('fill', 'none');
   svg.setAttribute('aria-hidden', 'true');
   svg.classList.add('icon-svg');
+  return svg;
+}
+
+function strokePath(d: string): SVGPathElement {
   const path = document.createElementNS(SVG_NS, 'path');
-  path.setAttribute('d', 'M7.5 2.25L3.75 6L7.5 9.75');
+  path.setAttribute('d', d);
   path.setAttribute('stroke', 'currentColor');
   path.setAttribute('stroke-width', '1.5');
   path.setAttribute('stroke-linecap', 'round');
   path.setAttribute('stroke-linejoin', 'round');
-  svg.appendChild(path);
+  return path;
+}
+
+function createBackArrowIcon(): SVGSVGElement {
+  const svg = createSvg(14, '0 0 14 14');
+  svg.appendChild(strokePath('M8.75 3L4.75 7L8.75 11'));
+  return svg;
+}
+
+function createCloseIcon(): SVGSVGElement {
+  const svg = createSvg(14, '0 0 14 14');
+  svg.appendChild(strokePath('M3.75 3.75L10.25 10.25M10.25 3.75L3.75 10.25'));
+  return svg;
+}
+
+function createMoreDotsIcon(): SVGSVGElement {
+  const svg = createSvg(16, '0 0 16 16');
+  for (const cx of [3.5, 8, 12.5]) {
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', String(cx));
+    c.setAttribute('cy', '8');
+    c.setAttribute('r', '1.2');
+    c.setAttribute('fill', 'currentColor');
+    svg.appendChild(c);
+  }
+  return svg;
+}
+
+function createThemeIcon(mode: ThemeMode): SVGSVGElement {
+  const svg = createSvg(15, '0 0 16 16');
+  if (mode === 'dark') {
+    // Show sun icon to switch to light
+    const c = document.createElementNS(SVG_NS, 'circle');
+    c.setAttribute('cx', '8');
+    c.setAttribute('cy', '8');
+    c.setAttribute('r', '3');
+    c.setAttribute('stroke', 'currentColor');
+    c.setAttribute('stroke-width', '1.5');
+    svg.appendChild(c);
+    svg.appendChild(
+      strokePath(
+        'M8 1.75V3M8 13V14.25M1.75 8H3M13 8H14.25M3.58 3.58L4.46 4.46M11.54 11.54L12.42 12.42M12.42 3.58L11.54 4.46M4.46 11.54L3.58 12.42',
+      ),
+    );
+  } else {
+    // Show moon icon to switch to dark
+    svg.appendChild(strokePath('M13.25 9.75A5.5 5.5 0 0 1 6.25 2.75a5.5 5.5 0 1 0 7 7Z'));
+  }
   return svg;
 }
 
 function createTreeChevronIcon(expanded: boolean): SVGSVGElement {
-  const svg = document.createElementNS(SVG_NS, 'svg');
-  svg.setAttribute('viewBox', '0 0 10 10');
-  svg.setAttribute('width', '10');
-  svg.setAttribute('height', '10');
-  svg.setAttribute('fill', 'none');
-  svg.setAttribute('aria-hidden', 'true');
+  const svg = createSvg(10, '0 0 10 10');
   svg.classList.add('twisty-chevron');
   if (expanded) svg.classList.add('is-expanded');
-  const path = document.createElementNS(SVG_NS, 'path');
-  path.setAttribute('d', 'M3.25 2L6.75 5L3.25 8');
-  path.setAttribute('stroke', 'currentColor');
-  path.setAttribute('stroke-width', '1.5');
-  path.setAttribute('stroke-linecap', 'round');
-  path.setAttribute('stroke-linejoin', 'round');
-  svg.appendChild(path);
+  svg.appendChild(strokePath('M3.25 2L6.75 5L3.25 8'));
   return svg;
 }
 
-function syncMobileAttributes(): void {
+function applyTheme(): void {
+  document.documentElement.dataset.theme = state.theme;
+  const btn = el<HTMLButtonElement>('btn-theme');
+  const nextLabel = state.theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme';
+  btn.title = nextLabel;
+  btn.setAttribute('aria-label', nextLabel);
+  btn.replaceChildren(createThemeIcon(state.theme));
+}
+
+function syncStaticIcons(): void {
+  el<HTMLElement>('more-menu-trigger').replaceChildren(createMoreDotsIcon());
+  el<HTMLButtonElement>('btn-close-hex').replaceChildren(createCloseIcon());
+}
+
+function syncLayoutAttributes(): void {
   const app = el<HTMLElement>('app');
   const screen: MobileScreen = state.selectedItemId ? state.mobileScreen : 'list';
   app.dataset.mobileScreen = screen;
-  app.dataset.mobileTab = state.mobileTab;
+  app.dataset.hexOpen = String(state.hexOpen);
   app.dataset.empty = String(state.items.length === 0);
 
-  const omniCount = state.items.filter(
-    (it) => it.classification.detected || it.manualOverride,
-  ).length;
-  const totalShown = state.scope === 'omnibuf' ? omniCount : state.items.length;
-  const backBtn = el<HTMLButtonElement>('btn-mobile-back');
-  backBtn.replaceChildren(
-    createBackArrowIcon(),
-    document.createTextNode(`Traffic (${totalShown})`),
-  );
+  const hexPane = el<HTMLElement>('pane-hex');
+  hexPane.hidden = !state.hexOpen;
 
-  const mTabs: Array<{ key: MobileTab; id: string }> = [
-    { key: 'fields', id: 'mtab-fields' },
-    { key: 'hex', id: 'mtab-hex' },
-    { key: 'json', id: 'mtab-json' },
-    { key: 'headers', id: 'mtab-headers' },
-  ];
-  for (const t of mTabs) {
-    const btn = el<HTMLButtonElement>(t.id);
-    const active = state.mobileTab === t.key;
-    btn.classList.toggle('is-active', active);
-    btn.setAttribute('aria-selected', String(active));
-  }
+  const hexBtn = el<HTMLButtonElement>('btn-toggle-hex');
+  hexBtn.classList.toggle('is-active', state.hexOpen);
+  hexBtn.setAttribute('aria-pressed', String(state.hexOpen));
+
+  const backBtn = el<HTMLButtonElement>('btn-mobile-back');
+  backBtn.replaceChildren(createBackArrowIcon(), document.createTextNode('Requests'));
+
+  el<HTMLElement>('demo-badge').hidden = !state.items.some((i) => i.source === 'synthetic');
 }
 
 function getSelectedItem(): CapturedItem | null {
@@ -275,13 +304,32 @@ function nodeMatchesFilter(node: FieldTreeNode, q: string): boolean {
   return node.children.some((ch) => nodeMatchesFilter(ch, q));
 }
 
+function formatQuietProtocol(item: CapturedItem): string {
+  if (item.source === 'file') return 'Local .obuf';
+  if (!item.classification.detected && !item.manualOverride) return 'Untagged';
+  const proto =
+    item.protocolOverride !== 'auto' ? item.protocolOverride : item.classification.protocol;
+  switch (proto) {
+    case 'connect-streaming':
+      return 'Connect stream';
+    case 'connect-unary':
+      return 'Connect';
+    case 'grpc-web':
+      return 'gRPC-Web';
+    case 'grpc-web-text':
+      return 'gRPC-Web text';
+    case 'raw':
+      return item.classification.reason === 'file-extension' ? '.obuf' : 'HTTP';
+  }
+}
+
 function updateCountsAndScopeUI(): void {
   const omniCount = state.items.filter(
     (it) => it.classification.detected || it.manualOverride,
   ).length;
   el<HTMLElement>('count-omnibuf').textContent = String(omniCount);
   el<HTMLElement>('count-all').textContent = String(state.items.length);
-  syncMobileAttributes();
+  syncLayoutAttributes();
 
   const btnOmni = el<HTMLButtonElement>('scope-omnibuf');
   const btnAll = el<HTMLButtonElement>('scope-all');
@@ -290,15 +338,6 @@ function updateCountsAndScopeUI(): void {
   btnOmni.setAttribute('aria-pressed', String(isOmni));
   btnAll.classList.toggle('is-active', !isOmni);
   btnAll.setAttribute('aria-pressed', String(!isOmni));
-
-  const statusEl = el<HTMLElement>('capture-status');
-  if (state.items.some((i) => i.source === 'synthetic')) {
-    statusEl.textContent = 'Synthetic demo';
-  } else if (isRunningInDevTools()) {
-    statusEl.textContent = 'Listening';
-  } else {
-    statusEl.textContent = 'Standalone';
-  }
 }
 
 function renderRequestList(): void {
@@ -311,9 +350,7 @@ function renderRequestList(): void {
     const note = document.createElement('div');
     note.className = 'pane-empty-note';
     note.textContent =
-      state.items.length > 0
-        ? 'No OmniBuf responses matched. Switch to "All HTTP" to decode untagged binary responses manually.'
-        : 'No responses captured yet.';
+      state.items.length > 0 ? 'No matching OmniBuf requests.' : 'No requests captured.';
     listEl.appendChild(note);
     return;
   }
@@ -325,51 +362,30 @@ function renderRequestList(): void {
     row.className = `req-row${item.id === state.selectedItemId ? ' is-selected' : ''}`;
     row.setAttribute('role', 'option');
     row.setAttribute('aria-selected', String(item.id === state.selectedItemId));
+    row.title = item.url;
 
     const top = document.createElement('div');
     top.className = 'req-row-top';
 
-    const status = document.createElement('span');
-    const isErr = item.status >= 400 || item.classification.isConnectUnaryError;
-    status.className = `status-pill ${isErr ? 'status-err' : 'status-ok'}`;
-    status.textContent = item.source === 'file' ? 'OBUF' : String(item.status || 200);
-
-    const method = document.createElement('span');
-    method.className = 'req-row-method';
-    method.textContent = item.method;
-
     const path = document.createElement('span');
     path.className = 'req-row-path';
     path.textContent = item.displayPath;
-    path.title = item.url;
+    top.appendChild(path);
 
-    top.append(status, method, path);
+    const isErr = item.status >= 400 || item.classification.isConnectUnaryError;
+    if (isErr) {
+      const status = document.createElement('span');
+      status.className = 'status-pill status-err';
+      status.textContent = String(item.status || 'ERR');
+      top.appendChild(status);
+    }
 
-    const bottom = document.createElement('div');
-    bottom.className = 'req-row-bottom';
+    const sub = document.createElement('div');
+    sub.className = 'req-row-sub';
+    sub.textContent =
+      item.source === 'file' ? 'Local .obuf' : `${item.method} · ${formatQuietProtocol(item)}`;
 
-    const host = document.createElement('span');
-    host.className = 'req-row-host';
-    host.textContent = item.source === 'synthetic' ? 'synthetic fixture' : item.host || 'local';
-
-    const right = document.createElement('span');
-    right.className = 'req-row-meta-right';
-
-    const badge = document.createElement('span');
-    badge.className = `proto-pill${item.source === 'synthetic' ? ' is-synthetic' : ''}`;
-    badge.textContent = item.classification.detected
-      ? item.classification.badge
-      : item.manualOverride
-        ? 'MANUAL'
-        : 'UNTAGGED';
-
-    const size = document.createElement('span');
-    size.textContent = formatBytes(item.body ? item.body.byteLength : item.reportedSize);
-
-    right.append(badge, size);
-    bottom.append(host, right);
-    row.append(top, bottom);
-
+    row.append(top, sub);
     row.addEventListener('click', () => {
       void selectItem(item.id);
     });
@@ -409,7 +425,6 @@ async function runInspectionForSelectedItem(resetExpanded: boolean): Promise<voi
     return;
   }
 
-  // Require explicit "Decode as OmniBuf" click for non-detected network responses
   if (!item.classification.detected && !item.manualOverride) {
     state.inspected = null;
     renderWorkspace();
@@ -445,71 +460,94 @@ async function runInspectionForSelectedItem(resetExpanded: boolean): Promise<voi
   renderWorkspace();
 }
 
-function wireTypeCategoryClass(wtLabel: string, kind: FieldTreeNode['kind']): string {
-  if (kind === 'schema') return ' wt-schema';
-  if (wtLabel === 'string') return ' wt-string';
-  if (
-    wtLabel === 'submsg' ||
-    wtLabel.startsWith('array<') ||
-    wtLabel.startsWith('map<') ||
-    wtLabel.includes('->')
-  ) {
-    return ' wt-container';
+function updateInspectorBar(
+  item: CapturedItem | null,
+  activeView: InspectedEnvelopeView | null,
+): void {
+  const bar = el<HTMLElement>('inspector-bar');
+  if (!item) {
+    bar.hidden = true;
+    return;
   }
-  return '';
+  bar.hidden = false;
+
+  const tabs: Array<{ key: ViewTab; id: string }> = [
+    { key: 'tree', id: 'vtab-tree' },
+    { key: 'json', id: 'vtab-json' },
+    { key: 'headers', id: 'vtab-headers' },
+  ];
+  for (const t of tabs) {
+    const btn = el<HTMLButtonElement>(t.id);
+    const active = state.activeTab === t.key;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', String(active));
+  }
+
+  const decoded = activeView?.decoded ?? null;
+  const typeHint = el<HTMLElement>('schema-type-hint');
+  if (decoded?.typeName) {
+    typeHint.hidden = false;
+    typeHint.textContent = decoded.typeName;
+    typeHint.title = `Embedded Field #0 schema: ${decoded.typeName}`;
+  } else {
+    typeHint.hidden = true;
+    typeHint.textContent = '';
+  }
+
+  el<HTMLElement>('field-filter-wrap').hidden = state.activeTab !== 'tree' || !decoded;
+
+  const protoSelect = el<HTMLSelectElement>('protocol-select');
+  const autoOpt = protoSelect.querySelector<HTMLOptionElement>('option[value="auto"]');
+  if (autoOpt) {
+    autoOpt.textContent = `Auto (${item.classification.protocol})`;
+  }
+  protoSelect.value = item.protocolOverride;
+
+  const hasCopyableJson = Boolean(
+    decoded || activeView?.envelope.endStream || activeView?.envelope.trailers,
+  );
+  el<HTMLButtonElement>('btn-copy-json').disabled = !hasCopyableJson;
+  el<HTMLButtonElement>('btn-export-json').disabled = !decoded;
+  el<HTMLButtonElement>('btn-expand-all').disabled = !decoded;
+  el<HTMLButtonElement>('btn-collapse-all').disabled = !decoded;
+  el<HTMLButtonElement>('btn-save-obuf').disabled =
+    !activeView || activeView.envelope.payload.byteLength === 0;
 }
 
 function renderEmptyWorkspace(): void {
-  el<HTMLElement>('inspector-header').hidden = true;
+  updateInspectorBar(null, null);
   el<HTMLElement>('warning-banner').hidden = true;
   el<HTMLElement>('envelope-strip').hidden = true;
-  el<HTMLElement>('mobile-byte-footer').hidden = true;
 
-  const viewport = el<HTMLElement>('tree-viewport');
+  const viewport = el<HTMLElement>('main-viewport');
   viewport.replaceChildren();
 
-  const card = document.createElement('div');
-  card.className = 'state-card';
+  const wrap = document.createElement('div');
+  wrap.className = 'empty-state';
 
   const title = document.createElement('h2');
-  title.className = 'state-title';
+  title.className = 'empty-title';
   title.textContent = isRunningInDevTools()
     ? 'Listening for OmniBuf responses'
-    : 'Inspect OmniBuf packets and RPC streams';
+    : 'No OmniBuf traffic yet';
 
   const copy = document.createElement('p');
-  copy.className = 'state-copy';
-  copy.textContent =
-    'Completed HTTP responses matching OmniBuf media types or .obuf file URLs decode automatically into an expandable field tree with byte offsets and JSON export. Drop any local .obuf file onto this panel, or switch to All HTTP to decode untagged binary responses manually.';
-
-  const chips = document.createElement('div');
-  chips.className = 'state-code-list';
-  for (const label of [
-    'application/omnibuf',
-    'application/x-omnibuf',
-    'application/connect+omnibuf',
-    'application/grpc-web+omnibuf',
-    '*.obuf',
-  ]) {
-    const c = document.createElement('code');
-    c.className = 'code-chip';
-    c.textContent = label;
-    chips.appendChild(c);
-  }
+  copy.className = 'empty-copy';
+  copy.textContent = 'Capture network responses automatically, or drop a .obuf file.';
 
   const actions = document.createElement('div');
-  actions.className = 'state-actions';
+  actions.className = 'empty-actions';
 
   const openBtn = document.createElement('button');
   openBtn.type = 'button';
   openBtn.className = 'btn-signal';
-  openBtn.textContent = 'Open .obuf file';
+  openBtn.textContent = 'Open .obuf';
   openBtn.addEventListener('click', () => el<HTMLInputElement>('obuf-file-input').click());
 
   const demoBtn = document.createElement('button');
   demoBtn.type = 'button';
   demoBtn.className = 'btn-tool';
-  demoBtn.textContent = 'Load synthetic sample traffic';
+  demoBtn.textContent = 'Load sample';
   demoBtn.addEventListener('click', () => {
     void loadSyntheticSamples();
   });
@@ -520,7 +558,7 @@ function renderEmptyWorkspace(): void {
     const showAllBtn = document.createElement('button');
     showAllBtn.type = 'button';
     showAllBtn.className = 'btn-tool';
-    showAllBtn.textContent = `Show all HTTP (${state.items.length})`;
+    showAllBtn.textContent = `Show all (${state.items.length})`;
     showAllBtn.addEventListener('click', () => {
       state.scope = 'all';
       renderRequestList();
@@ -528,42 +566,42 @@ function renderEmptyWorkspace(): void {
     actions.appendChild(showAllBtn);
   }
 
-  card.append(title, copy, chips, actions);
-  viewport.appendChild(card);
+  wrap.append(title, copy, actions);
+  viewport.appendChild(wrap);
 
-  renderDetailPanes(null, null);
+  renderHexPane(null, null);
 }
 
 function renderManualOverrideGate(item: CapturedItem): void {
-  el<HTMLElement>('inspector-header').hidden = false;
-  updateInspectorHeaderBar(item, null);
+  updateInspectorBar(item, null);
   el<HTMLElement>('warning-banner').hidden = true;
   el<HTMLElement>('envelope-strip').hidden = true;
-  el<HTMLElement>('mobile-byte-footer').hidden = true;
 
-  const viewport = el<HTMLElement>('tree-viewport');
+  if (state.activeTab === 'headers') {
+    renderHeadersView(el<HTMLElement>('main-viewport'), item);
+    renderHexPane(item, null);
+    return;
+  }
+
+  const viewport = el<HTMLElement>('main-viewport');
   viewport.replaceChildren();
 
-  const card = document.createElement('div');
-  card.className = 'state-card';
+  const wrap = document.createElement('div');
+  wrap.className = 'empty-state';
 
   const title = document.createElement('h2');
-  title.className = 'state-title';
-  title.textContent = 'Untagged HTTP response';
+  title.className = 'empty-title';
+  title.textContent = 'Untagged binary response';
 
   const media = item.classification.mediaType || 'unspecified Content-Type';
   const bodyLen = item.body ? item.body.byteLength : item.reportedSize;
-  const firstHex =
-    item.body && item.body.byteLength > 0
-      ? toHex(item.body.subarray(0, Math.min(16, item.body.byteLength)))
-      : '(empty)';
 
   const copy = document.createElement('p');
-  copy.className = 'state-copy';
-  copy.textContent = `Response returned ${media} (${formatBytes(bodyLen)}). Leading bytes: 0x${firstHex}. Ordinary Protobuf or JSON payloads are not OmniBuf; decode manually when this endpoint emits an OmniBuf wire payload.`;
+  copy.className = 'empty-copy';
+  copy.textContent = `${media} · ${formatBytes(bodyLen)}`;
 
   const actions = document.createElement('div');
-  actions.className = 'state-actions';
+  actions.className = 'empty-actions';
 
   const decodeBtn = document.createElement('button');
   decodeBtn.type = 'button';
@@ -575,56 +613,10 @@ function renderManualOverrideGate(item: CapturedItem): void {
   });
 
   actions.appendChild(decodeBtn);
-  card.append(title, copy, actions);
-  viewport.appendChild(card);
+  wrap.append(title, copy, actions);
+  viewport.appendChild(wrap);
 
-  renderDetailPanes(item, null);
-}
-
-function updateInspectorHeaderBar(
-  item: CapturedItem,
-  activeView: InspectedEnvelopeView | null,
-): void {
-  el<HTMLElement>('req-method-badge').textContent = item.method;
-  const pathEl = el<HTMLElement>('req-path');
-  pathEl.textContent = item.displayPath;
-  pathEl.title = item.url;
-
-  const schemaBadge = el<HTMLElement>('schema-badge');
-  const decoded = activeView?.decoded;
-  if (decoded?.schemaMeta) {
-    schemaBadge.className = 'meta-badge is-schema';
-    schemaBadge.textContent = decoded.typeName
-      ? `Field #0 · ${decoded.typeName}`
-      : 'Field #0 · Self-describing';
-  } else if (decoded) {
-    schemaBadge.className = 'meta-badge';
-    schemaBadge.textContent = 'Blind wire · Numbered fields';
-  } else if (!item.classification.detected && !item.manualOverride) {
-    schemaBadge.className = 'meta-badge';
-    schemaBadge.textContent = item.classification.mediaType || 'untagged';
-  } else {
-    schemaBadge.className = 'meta-badge';
-    schemaBadge.textContent = state.inspected?.protocol ?? item.classification.protocol;
-  }
-
-  const wireBadge = el<HTMLElement>('wire-size-badge');
-  const rawBytes = item.body ? item.body.byteLength : item.reportedSize;
-  wireBadge.textContent = formatBytes(rawBytes);
-
-  const protoSelect = el<HTMLSelectElement>('protocol-select');
-  const autoOpt = protoSelect.querySelector<HTMLOptionElement>('option[value="auto"]');
-  if (autoOpt) {
-    autoOpt.textContent = `Auto (${item.classification.protocol})`;
-  }
-  protoSelect.value = item.protocolOverride;
-
-  const hasDecoded = Boolean(decoded);
-  el<HTMLElement>('tree-controls-bar').hidden = !hasDecoded;
-  el<HTMLButtonElement>('btn-copy-json').disabled = !hasDecoded;
-  el<HTMLButtonElement>('btn-export-json').disabled = !hasDecoded;
-  el<HTMLButtonElement>('btn-save-obuf').disabled =
-    !activeView || activeView.envelope.payload.byteLength === 0;
+  renderHexPane(item, null);
 }
 
 function renderEnvelopeStrip(result: InspectedTrafficResult): void {
@@ -643,37 +635,35 @@ function renderEnvelopeStrip(result: InspectedTrafficResult): void {
   }
   strip.hidden = false;
 
+  let msgCounter = 0;
   result.envelopes.forEach((view, idx) => {
     const env = view.envelope;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = `env-chip${idx === state.selectedEnvelopeIdx ? ' is-active' : ''}`;
+    const hasErr = Boolean(view.decodeError || env.error || env.endStream?.error);
+    btn.className = `env-chip${idx === state.selectedEnvelopeIdx ? ' is-active' : ''}${hasErr ? ' is-error' : ''}`;
     btn.setAttribute('role', 'tab');
     btn.setAttribute('aria-selected', String(idx === state.selectedEnvelopeIdx));
 
-    const kindSpan = document.createElement('span');
-    kindSpan.className = 'env-chip-kind';
-    if (env.kind === 'message') kindSpan.textContent = `#${idx} MSG`;
-    else if (env.kind === 'end-stream') kindSpan.textContent = `#${idx} END`;
-    else if (env.kind === 'trailers') kindSpan.textContent = `#${idx} TRAILERS`;
-    else kindSpan.textContent = `#${idx} ERR`;
-
-    const descSpan = document.createElement('span');
     if (env.kind === 'message') {
+      msgCounter++;
+      btn.textContent = `Message ${msgCounter}`;
       const compNote = env.compressed
         ? `${env.compressionEncoding ?? 'compressed'} -> ${formatBytes(env.payload.byteLength)}`
         : formatBytes(env.payload.byteLength);
-      descSpan.textContent = `${compNote} @+${formatHex4(env.wireOffset)}`;
+      btn.title = `Frame #${idx} · ${compNote} · +${formatHex4(env.wireOffset)}`;
     } else if (env.kind === 'end-stream') {
-      descSpan.textContent = `${formatEndStreamSummary(env.endStream)} @+${formatHex4(env.wireOffset)}`;
+      btn.textContent = env.endStream?.error ? 'End (error)' : 'End stream';
+      btn.title = `${formatEndStreamSummary(env.endStream)} · +${formatHex4(env.wireOffset)}`;
     } else if (env.kind === 'trailers') {
-      const status = env.trailers?.['grpc-status'] ?? '?';
-      descSpan.textContent = `grpc-status: ${status}`;
+      const status = env.trailers?.['grpc-status'];
+      btn.textContent = status && status !== '0' ? `Trailers (${status})` : 'Trailers';
+      btn.title = status ? `grpc-status: ${status}` : 'gRPC-Web trailers';
     } else {
-      descSpan.textContent = formatEndStreamSummary(env.endStream);
+      btn.textContent = 'Error';
+      btn.title = formatEndStreamSummary(env.endStream);
     }
 
-    btn.append(kindSpan, descSpan);
     btn.addEventListener('click', () => {
       state.selectedEnvelopeIdx = idx;
       state.selectedNodeId = null;
@@ -728,14 +718,48 @@ function flattenVisibleTree(nodes: FieldTreeNode[]): FlatTreeRow[] {
   return rows;
 }
 
+function valueToneClass(node: FieldTreeNode, hasChildren: boolean): string {
+  if (hasChildren) return ' val-container';
+  const wt = node.wireTypeLabel;
+  if (wt === 'string' || wt.endsWith('-> string')) return ' val-string';
+  if (wt === 'bytes' || wt.startsWith('extended') || wt.endsWith('-> bytes')) return ' val-bytes';
+  return ' val-number';
+}
+
+function formatExpandedHint(node: FieldTreeNode): string {
+  if (node.wireTypeLabel === 'submsg' || node.kind === 'schema') {
+    const braceIdx = node.summary.indexOf('{');
+    if (braceIdx > 0) {
+      return node.summary.slice(0, braceIdx).trim();
+    }
+  }
+  return '';
+}
+
+function formatHoverMeta(node: FieldTreeNode): string {
+  const parts: string[] = [];
+  if (node.fieldNumber !== null) {
+    parts.push(`#${node.fieldNumber}`);
+  }
+  const cleanWt = node.wireTypeLabel.startsWith('bool=') ? 'bool' : node.wireTypeLabel;
+  parts.push(cleanWt);
+  parts.push(`${node.byteLength} B`);
+  if (node.children.length === 0 && node.hexPreview) {
+    const shortHex =
+      node.hexPreview.length > 16 ? `${node.hexPreview.slice(0, 16)}…` : node.hexPreview;
+    parts.push(`0x${shortHex}`);
+  }
+  return parts.join(' · ');
+}
+
 function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEnvelopeView): void {
-  const viewport = el<HTMLElement>('tree-viewport');
+  const viewport = el<HTMLElement>('main-viewport');
   viewport.replaceChildren();
 
   if (decoded.byteLength === 0) {
     const empty = document.createElement('div');
     empty.className = 'pane-empty-note';
-    empty.textContent = 'Empty OmniBuf message (0 bytes, all fields at default values).';
+    empty.textContent = 'Empty message (0 B).';
     viewport.appendChild(empty);
     return;
   }
@@ -745,8 +769,8 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
     const empty = document.createElement('div');
     empty.className = 'pane-empty-note';
     empty.textContent = state.fieldFilter
-      ? `No fields matched "${state.fieldFilter}".`
-      : 'Packet contains only Field #0 metadata; enable "Field #0" above to inspect schema bytes.';
+      ? `No fields matching "${state.fieldFilter}".`
+      : 'Message contains only Field #0 metadata.';
     viewport.appendChild(empty);
     return;
   }
@@ -766,7 +790,7 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
     const isSelected = node.id === state.selectedNodeId;
 
     const row = document.createElement('div');
-    row.className = `tree-row${isSelected ? ' is-selected' : ''}`;
+    row.className = `tree-row${isSelected ? ' is-selected' : ''}${hasChildren ? ' is-branch' : ''}`;
     row.style.setProperty('--depth', String(depth));
     row.setAttribute('role', 'treeitem');
     row.setAttribute('aria-level', String(depth + 1));
@@ -776,38 +800,36 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
     }
     row.dataset.nodeId = node.id;
 
+    const hoverText = formatHoverMeta(node);
+    row.title = `${hoverText} · +${formatHex4(node.offset)}`;
+
     const twisty = document.createElement('span');
     twisty.className = 'tree-twisty';
     if (hasChildren) {
       twisty.appendChild(createTreeChevronIcon(isExpanded));
     }
 
-    const fnum = document.createElement('span');
-    fnum.className = 'tree-fnum';
-    fnum.textContent = node.fieldNumber !== null ? `#${node.fieldNumber}` : '';
+    const key = document.createElement('span');
+    key.className = `tree-key${!node.isSchemaResolved ? ' is-blind' : ''}${node.kind === 'schema' ? ' is-schema-key' : ''}`;
+    key.textContent = hasChildren && isExpanded ? node.label : `${node.label}:`;
 
-    const fname = document.createElement('span');
-    fname.className = `tree-fname${!node.isSchemaResolved ? ' is-blind' : ''}${node.kind === 'schema' ? ' is-schema-key' : ''}`;
-    fname.textContent = node.label;
+    row.append(twisty, key);
 
-    const wtype = document.createElement('span');
-    wtype.className = `tree-wtype${wireTypeCategoryClass(node.wireTypeLabel, node.kind)}`;
-    wtype.textContent = node.wireTypeLabel;
+    const displaySummary = hasChildren && isExpanded ? formatExpandedHint(node) : node.summary;
+    if (displaySummary) {
+      const val = document.createElement('span');
+      val.className = `tree-val${valueToneClass(node, hasChildren)}`;
+      val.textContent = displaySummary;
+      row.appendChild(val);
+    }
 
-    const val = document.createElement('span');
-    val.className = `tree-val${node.wireTypeLabel === 'string' ? ' val-string' : ''}`;
-    val.textContent = node.summary;
-    val.title = node.summary;
+    const hoverMeta = document.createElement('span');
+    hoverMeta.className = 'tree-hover-meta';
+    hoverMeta.textContent = hoverText;
+    row.appendChild(hoverMeta);
 
-    const span = document.createElement('span');
-    span.className = 'tree-span';
-    span.textContent = `+${formatHex4(node.offset)} · ${node.byteLength} B`;
-
-    row.append(twisty, fnum, fname, wtype, val, span);
-
-    row.addEventListener('click', (ev) => {
-      const clickedTwisty = (ev.target as HTMLElement | null)?.closest('.tree-twisty');
-      if (hasChildren && (clickedTwisty || state.selectedNodeId === node.id)) {
+    row.addEventListener('click', () => {
+      if (hasChildren && !state.fieldFilter.trim()) {
         if (state.expandedNodeIds.has(node.id)) {
           state.expandedNodeIds.delete(node.id);
         } else {
@@ -817,8 +839,7 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
       state.selectedNodeId = node.id;
       state.hexWindowStart = alignHexWindow(node.offset);
       renderFieldTree(decoded, activeView);
-      const item = getSelectedItem();
-      renderDetailPanes(item, activeView);
+      renderHexPane(getSelectedItem(), activeView);
       treeEl.focus({ preventScroll: true });
     });
 
@@ -838,7 +859,7 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
         state.selectedNodeId = next.node.id;
         state.hexWindowStart = alignHexWindow(next.node.offset);
         renderFieldTree(decoded, activeView);
-        renderDetailPanes(getSelectedItem(), activeView);
+        renderHexPane(getSelectedItem(), activeView);
       }
     } else if (ev.key === 'ArrowUp') {
       ev.preventDefault();
@@ -847,7 +868,7 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
         state.selectedNodeId = prev.node.id;
         state.hexWindowStart = alignHexWindow(prev.node.offset);
         renderFieldTree(decoded, activeView);
-        renderDetailPanes(getSelectedItem(), activeView);
+        renderHexPane(getSelectedItem(), activeView);
       }
     } else if (ev.key === 'ArrowRight') {
       ev.preventDefault();
@@ -859,7 +880,7 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
         state.selectedNodeId = child.node.id;
         state.hexWindowStart = alignHexWindow(child.node.offset);
         renderFieldTree(decoded, activeView);
-        renderDetailPanes(getSelectedItem(), activeView);
+        renderHexPane(getSelectedItem(), activeView);
       }
     } else if (ev.key === 'ArrowLeft') {
       ev.preventDefault();
@@ -871,7 +892,7 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
         const parentRow = flatRows.find((r) => r.node.id === current.parentId);
         if (parentRow) state.hexWindowStart = alignHexWindow(parentRow.node.offset);
         renderFieldTree(decoded, activeView);
-        renderDetailPanes(getSelectedItem(), activeView);
+        renderHexPane(getSelectedItem(), activeView);
       }
     } else if (ev.key === 'Home') {
       ev.preventDefault();
@@ -879,14 +900,14 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
       state.selectedNodeId = first.node.id;
       state.hexWindowStart = alignHexWindow(first.node.offset);
       renderFieldTree(decoded, activeView);
-      renderDetailPanes(getSelectedItem(), activeView);
+      renderHexPane(getSelectedItem(), activeView);
     } else if (ev.key === 'End') {
       ev.preventDefault();
       const last = flatRows[flatRows.length - 1]!;
       state.selectedNodeId = last.node.id;
       state.hexWindowStart = alignHexWindow(last.node.offset);
       renderFieldTree(decoded, activeView);
-      renderDetailPanes(getSelectedItem(), activeView);
+      renderHexPane(getSelectedItem(), activeView);
     } else if (ev.key === 'Enter') {
       ev.preventDefault();
       void copyText(current.node.summary, current.node.label);
@@ -910,108 +931,20 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
   }
 }
 
-function renderNonMessageEnvelope(view: InspectedEnvelopeView): void {
-  const viewport = el<HTMLElement>('tree-viewport');
+function renderJsonView(viewport: HTMLElement, activeView: InspectedEnvelopeView | null): void {
   viewport.replaceChildren();
-  const env = view.envelope;
-
-  const card = document.createElement('div');
-  card.className = `state-card${env.kind === 'error-json' || env.endStream?.error ? ' is-error' : ''}`;
-
-  const title = document.createElement('h2');
-  title.className = 'state-title';
-  if (env.kind === 'end-stream') {
-    title.textContent = env.endStream?.error
-      ? `Connect EndStreamResponse Error: ${env.endStream.error.code ?? 'unknown'}`
-      : 'Connect EndStreamResponse Metadata';
-  } else if (env.kind === 'error-json') {
-    title.textContent = `Connect Unary Error: ${env.endStream?.error?.code ?? 'error'}`;
-  } else {
-    title.textContent = 'gRPC-Web Stream Trailers';
-  }
-
   const pre = document.createElement('pre');
   pre.className = 'json-pre';
-  if (env.kind === 'trailers') {
-    pre.textContent = formatDecodedJson(env.trailers ?? {}, 2);
+  if (activeView?.decoded) {
+    pre.textContent = activeView.decoded.jsonText;
+  } else if (activeView?.envelope.endStream) {
+    pre.textContent = formatDecodedJson(activeView.envelope.endStream.rawJson, 2);
+  } else if (activeView?.envelope.trailers) {
+    pre.textContent = formatDecodedJson(activeView.envelope.trailers, 2);
   } else {
-    pre.textContent = formatDecodedJson(env.endStream?.rawJson ?? {}, 2);
+    pre.textContent = '{}';
   }
-
-  card.append(title, pre);
-  viewport.appendChild(card);
-}
-
-function renderDecodeErrorCard(errText: string, item: CapturedItem): void {
-  const viewport = el<HTMLElement>('tree-viewport');
-  viewport.replaceChildren();
-
-  const card = document.createElement('div');
-  card.className = 'state-card is-error';
-
-  const title = document.createElement('h2');
-  title.className = 'state-title';
-  title.textContent = 'OmniBuf wire decode failed';
-
-  const copy = document.createElement('p');
-  copy.className = 'state-copy';
-  copy.textContent = `${errText}. Verify the endpoint emits OmniBuf rather than standard Protobuf, or switch the Protocol selector above (${item.protocolOverride === 'auto' ? item.classification.protocol : item.protocolOverride} active).`;
-
-  card.append(title, copy);
-  viewport.appendChild(card);
-}
-
-function renderWorkspace(): void {
-  const item = getSelectedItem();
-  if (!item) {
-    renderEmptyWorkspace();
-    return;
-  }
-
-  if (!item.classification.detected && !item.manualOverride) {
-    renderManualOverrideGate(item);
-    return;
-  }
-
-  el<HTMLElement>('inspector-header').hidden = false;
-  const activeView = getActiveEnvelopeView();
-  updateInspectorHeaderBar(item, activeView);
-
-  const warnBanner = el<HTMLElement>('warning-banner');
-  const warnings = state.inspected?.warnings ?? [];
-  if (warnings.length > 0) {
-    warnBanner.hidden = false;
-    warnBanner.textContent = warnings.join(' | ');
-  } else {
-    warnBanner.hidden = true;
-  }
-
-  if (state.inspected) {
-    renderEnvelopeStrip(state.inspected);
-  } else {
-    el<HTMLElement>('envelope-strip').hidden = true;
-  }
-
-  if (!activeView) {
-    const viewport = el<HTMLElement>('tree-viewport');
-    viewport.replaceChildren();
-    const note = document.createElement('div');
-    note.className = 'pane-empty-note';
-    note.textContent = 'Empty response body (0 envelopes).';
-    viewport.appendChild(note);
-    renderDetailPanes(item, null);
-    return;
-  }
-
-  if (activeView.decodeError) {
-    renderDecodeErrorCard(activeView.decodeError, item);
-  } else if (activeView.envelope.kind !== 'message') {
-    renderNonMessageEnvelope(activeView);
-  } else if (activeView.decoded) {
-    renderFieldTree(activeView.decoded, activeView);
-  }
-
-  renderDetailPanes(item, activeView);
+  viewport.appendChild(pre);
 }
 
 function renderKeyValueSection(
@@ -1046,135 +979,209 @@ function renderKeyValueSection(
   parent.appendChild(sec);
 }
 
-function updateMobileByteFooter(activeView: InspectedEnvelopeView | null): void {
-  const footer = el<HTMLElement>('mobile-byte-footer');
-  const summary = el<HTMLElement>('mobile-byte-summary');
-  const selectedNode = activeView?.decoded
-    ? findNodeById(activeView.decoded.nodes, state.selectedNodeId)
-    : null;
-  if (!selectedNode || state.mobileTab !== 'fields') {
-    footer.hidden = true;
-    return;
+function renderHeadersView(viewport: HTMLElement, item: CapturedItem): void {
+  viewport.replaceChildren();
+  const wrap = document.createElement('div');
+  wrap.className = 'headers-wrap';
+
+  renderKeyValueSection(wrap, 'General', {
+    url: item.url,
+    method: item.method,
+    status: String(item.status),
+    protocol: state.inspected?.protocol ?? item.classification.protocol,
+    size: formatBytes(item.body ? item.body.byteLength : item.reportedSize),
+  });
+  renderKeyValueSection(wrap, 'Response Headers', item.responseHeaders);
+  renderKeyValueSection(wrap, 'Request Headers', item.requestHeaders);
+
+  if (state.inspected) {
+    for (const view of state.inspected.envelopes) {
+      if (view.envelope.trailers) {
+        renderKeyValueSection(wrap, 'Trailers', view.envelope.trailers);
+      }
+      if (view.envelope.endStream?.metadata) {
+        const flatMeta: Record<string, string> = {};
+        for (const [k, vals] of Object.entries(view.envelope.endStream.metadata)) {
+          flatMeta[k] = Array.isArray(vals) ? vals.join(', ') : String(vals);
+        }
+        renderKeyValueSection(wrap, 'Stream Metadata', flatMeta);
+      }
+    }
   }
-  footer.hidden = false;
-  const spacedHex = selectedNode.hexPreview.replace(/([0-9a-f]{2})(?=[0-9a-f])/gi, '$1 ');
-  summary.textContent = `${selectedNode.label} · +${formatHex4(selectedNode.offset)} (${selectedNode.byteLength} B) · ${spacedHex}`;
+
+  viewport.appendChild(wrap);
 }
 
-function renderDetailPanes(
-  item: CapturedItem | null,
-  activeView: InspectedEnvelopeView | null,
-): void {
-  syncMobileAttributes();
-  updateMobileByteFooter(activeView);
-  const tabs: Array<{ key: DetailTab; btnId: string; panelId: string }> = [
-    { key: 'hex', btnId: 'tab-hex', panelId: 'panel-hex' },
-    { key: 'json', btnId: 'tab-json', panelId: 'panel-json' },
-    { key: 'headers', btnId: 'tab-headers', panelId: 'panel-headers' },
-  ];
-  for (const t of tabs) {
-    const active = state.detailTab === t.key;
-    const btn = el<HTMLButtonElement>(t.btnId);
-    const panel = el<HTMLElement>(t.panelId);
-    btn.classList.toggle('is-active', active);
-    btn.setAttribute('aria-selected', String(active));
-    panel.hidden = !active;
+function renderNonMessageEnvelope(view: InspectedEnvelopeView): void {
+  const viewport = el<HTMLElement>('main-viewport');
+  viewport.replaceChildren();
+  const env = view.envelope;
+
+  const wrap = document.createElement('div');
+  wrap.className = 'envelope-meta-view';
+
+  const heading = document.createElement('div');
+  heading.className = `envelope-meta-heading${env.kind === 'error-json' || env.endStream?.error ? ' is-error' : ''}`;
+  if (env.kind === 'end-stream') {
+    heading.textContent = env.endStream?.error
+      ? `Stream ended with error (${env.endStream.error.code ?? 'unknown'})`
+      : 'End of stream metadata';
+  } else if (env.kind === 'error-json') {
+    heading.textContent = `RPC error (${env.endStream?.error?.code ?? 'unknown'})`;
+  } else {
+    heading.textContent = 'gRPC-Web trailers';
   }
 
+  const pre = document.createElement('pre');
+  pre.className = 'json-pre';
+  pre.textContent =
+    env.kind === 'trailers'
+      ? formatDecodedJson(env.trailers ?? {}, 2)
+      : formatDecodedJson(env.endStream?.rawJson ?? {}, 2);
+
+  wrap.append(heading, pre);
+  viewport.appendChild(wrap);
+}
+
+function renderDecodeError(errText: string, item: CapturedItem): void {
+  const viewport = el<HTMLElement>('main-viewport');
+  viewport.replaceChildren();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'empty-state is-error';
+
+  const title = document.createElement('h2');
+  title.className = 'empty-title';
+  title.textContent = 'Could not decode as OmniBuf';
+
+  const proto =
+    item.protocolOverride === 'auto' ? item.classification.protocol : item.protocolOverride;
+  const copy = document.createElement('p');
+  copy.className = 'empty-copy';
+  copy.textContent = `${errText} (${proto}). Check the protocol setting in the menu.`;
+
+  wrap.append(title, copy);
+  viewport.appendChild(wrap);
+}
+
+function renderHexPane(item: CapturedItem | null, activeView: InspectedEnvelopeView | null): void {
+  syncLayoutAttributes();
+  if (!state.hexOpen) return;
+
   const hexPanel = el<HTMLElement>('panel-hex');
-  const jsonPanel = el<HTMLElement>('panel-json');
-  const headersPanel = el<HTMLElement>('panel-headers');
+  const metaEl = el<HTMLElement>('hex-bar-meta');
 
   if (!item) {
+    metaEl.textContent = '';
     hexPanel.replaceChildren();
-    jsonPanel.replaceChildren();
-    headersPanel.replaceChildren();
     const note = document.createElement('div');
     note.className = 'pane-empty-note';
-    note.textContent = 'Select a response or open a .obuf file to inspect byte offsets.';
+    note.textContent = 'Select a request to inspect bytes.';
     hexPanel.appendChild(note);
     return;
   }
 
-  // 1. Hex & Offsets
-  if (state.detailTab === 'hex') {
-    const packetBytes = activeView ? activeView.envelope.payload : (item.body ?? new Uint8Array(0));
-    const selectedNode = activeView?.decoded
-      ? findNodeById(activeView.decoded.nodes, state.selectedNodeId)
-      : null;
+  const packetBytes = activeView ? activeView.envelope.payload : (item.body ?? new Uint8Array(0));
+  const selectedNode = activeView?.decoded
+    ? findNodeById(activeView.decoded.nodes, state.selectedNodeId)
+    : null;
 
-    const useCompact8ByteRow = window.innerWidth < 520;
-    renderHexInspector(hexPanel, {
-      packet: packetBytes,
-      selectedNode,
-      isFieldNavigable: Boolean(activeView?.decoded),
-      bytesPerRow: useCompact8ByteRow ? 8 : 16,
-      windowStart: state.hexWindowStart,
-      onChangeWindow(newStart) {
-        state.hexWindowStart = newStart;
-        renderDetailPanes(item, activeView);
-      },
-      onSelectByte(byteOffset) {
-        if (!activeView?.decoded) return;
-        const hit = findNodeAtByteOffset(activeView.decoded.nodes, byteOffset, state.showField0);
-        if (!hit) return;
-        for (const ancestor of hit.path.slice(0, -1)) {
-          state.expandedNodeIds.add(ancestor.id);
-        }
-        state.selectedNodeId = hit.node.id;
-        state.hexWindowStart = alignHexWindow(byteOffset);
-        renderFieldTree(activeView.decoded, activeView);
-        renderDetailPanes(item, activeView);
-      },
-    });
+  if (selectedNode) {
+    metaEl.textContent = `${selectedNode.label} · +${formatHex4(selectedNode.offset)} · ${selectedNode.byteLength} B`;
+  } else {
+    metaEl.textContent = formatBytes(packetBytes.byteLength);
   }
 
-  // 2. Decoded JSON
-  if (state.detailTab === 'json') {
-    jsonPanel.replaceChildren();
-    const pre = document.createElement('pre');
-    pre.className = 'json-pre';
-    if (activeView?.decoded) {
-      pre.textContent = activeView.decoded.jsonText;
-    } else if (activeView?.envelope.endStream) {
-      pre.textContent = formatDecodedJson(activeView.envelope.endStream.rawJson, 2);
-    } else if (activeView?.envelope.trailers) {
-      pre.textContent = formatDecodedJson(activeView.envelope.trailers, 2);
-    } else {
-      pre.textContent = '// No decoded OmniBuf message active';
-    }
-    jsonPanel.appendChild(pre);
-  }
-
-  // 3. Headers & Meta
-  if (state.detailTab === 'headers') {
-    headersPanel.replaceChildren();
-    renderKeyValueSection(headersPanel, 'Transport Summary', {
-      url: item.url,
-      method: item.method,
-      status: String(item.status),
-      'detected-protocol': state.inspected?.protocol ?? item.classification.protocol,
-      'detection-source': item.manualOverride ? 'manual override' : item.classification.reason,
-      'wire-bytes': `${(item.body ? item.body.byteLength : item.reportedSize).toLocaleString()} B`,
-    });
-    renderKeyValueSection(headersPanel, 'Response Headers', item.responseHeaders);
-    renderKeyValueSection(headersPanel, 'Request Headers', item.requestHeaders);
-
-    if (state.inspected) {
-      for (const view of state.inspected.envelopes) {
-        if (view.envelope.trailers) {
-          renderKeyValueSection(headersPanel, 'gRPC-Web Trailers', view.envelope.trailers);
-        }
-        if (view.envelope.endStream?.metadata) {
-          const flatMeta: Record<string, string> = {};
-          for (const [k, vals] of Object.entries(view.envelope.endStream.metadata)) {
-            flatMeta[k] = Array.isArray(vals) ? vals.join(', ') : String(vals);
-          }
-          renderKeyValueSection(headersPanel, 'Connect EndStream Metadata', flatMeta);
-        }
+  const useCompact8ByteRow = window.innerWidth < 520;
+  renderHexInspector(hexPanel, {
+    packet: packetBytes,
+    selectedNode,
+    bytesPerRow: useCompact8ByteRow ? 8 : 16,
+    windowStart: state.hexWindowStart,
+    onChangeWindow(newStart) {
+      state.hexWindowStart = newStart;
+      renderHexPane(item, activeView);
+    },
+    onSelectByte(byteOffset) {
+      if (!activeView?.decoded) return;
+      const hit = findNodeAtByteOffset(activeView.decoded.nodes, byteOffset, state.showField0);
+      if (!hit) return;
+      for (const ancestor of hit.path.slice(0, -1)) {
+        state.expandedNodeIds.add(ancestor.id);
       }
-    }
+      state.selectedNodeId = hit.node.id;
+      state.hexWindowStart = alignHexWindow(byteOffset);
+      if (state.activeTab === 'tree') {
+        renderFieldTree(activeView.decoded, activeView);
+      }
+      renderHexPane(item, activeView);
+    },
+  });
+}
+
+function renderWorkspace(): void {
+  const item = getSelectedItem();
+  if (!item) {
+    renderEmptyWorkspace();
+    return;
   }
+
+  if (!item.classification.detected && !item.manualOverride) {
+    renderManualOverrideGate(item);
+    return;
+  }
+
+  const activeView = getActiveEnvelopeView();
+  updateInspectorBar(item, activeView);
+
+  const warnBanner = el<HTMLElement>('warning-banner');
+  const warnings = state.inspected?.warnings ?? [];
+  if (warnings.length > 0) {
+    warnBanner.hidden = false;
+    warnBanner.textContent = warnings.join(' · ');
+  } else {
+    warnBanner.hidden = true;
+  }
+
+  if (state.inspected) {
+    renderEnvelopeStrip(state.inspected);
+  } else {
+    el<HTMLElement>('envelope-strip').hidden = true;
+  }
+
+  const viewport = el<HTMLElement>('main-viewport');
+
+  if (state.activeTab === 'headers') {
+    renderHeadersView(viewport, item);
+    renderHexPane(item, activeView);
+    return;
+  }
+
+  if (state.activeTab === 'json') {
+    renderJsonView(viewport, activeView);
+    renderHexPane(item, activeView);
+    return;
+  }
+
+  if (!activeView) {
+    viewport.replaceChildren();
+    const note = document.createElement('div');
+    note.className = 'pane-empty-note';
+    note.textContent = 'Empty response body.';
+    viewport.appendChild(note);
+    renderHexPane(item, null);
+    return;
+  }
+
+  if (activeView.decodeError) {
+    renderDecodeError(activeView.decodeError, item);
+  } else if (activeView.envelope.kind !== 'message') {
+    renderNonMessageEnvelope(activeView);
+  } else if (activeView.decoded) {
+    renderFieldTree(activeView.decoded, activeView);
+  }
+
+  renderHexPane(item, activeView);
 }
 
 async function importObufFiles(files: FileList | File[]): Promise<void> {
@@ -1231,7 +1238,13 @@ function expandOrCollapseAll(expand: boolean): void {
     };
     visit(activeView.decoded.nodes);
   }
-  renderFieldTree(activeView.decoded, activeView);
+  if (state.activeTab === 'tree') {
+    renderFieldTree(activeView.decoded, activeView);
+  }
+}
+
+function closeMoreMenu(): void {
+  el<HTMLDetailsElement>('more-menu').open = false;
 }
 
 function wireDomEvents(): void {
@@ -1275,10 +1288,29 @@ function wireDomEvents(): void {
   });
 
   el<HTMLButtonElement>('btn-theme').addEventListener('click', () => {
-    const order: ThemePref[] = ['auto', 'dark', 'light'];
-    const nextIdx = (order.indexOf(state.themePref) + 1) % order.length;
-    state.themePref = order[nextIdx]!;
+    state.theme = state.theme === 'dark' ? 'light' : 'dark';
     applyTheme();
+  });
+
+  for (const [tabId, key] of [
+    ['vtab-tree', 'tree'],
+    ['vtab-json', 'json'],
+    ['vtab-headers', 'headers'],
+  ] as const) {
+    el<HTMLButtonElement>(tabId).addEventListener('click', () => {
+      state.activeTab = key;
+      renderWorkspace();
+    });
+  }
+
+  el<HTMLButtonElement>('btn-toggle-hex').addEventListener('click', () => {
+    state.hexOpen = !state.hexOpen;
+    renderHexPane(getSelectedItem(), getActiveEnvelopeView());
+  });
+
+  el<HTMLButtonElement>('btn-close-hex').addEventListener('click', () => {
+    state.hexOpen = false;
+    renderHexPane(getSelectedItem(), getActiveEnvelopeView());
   });
 
   el<HTMLSelectElement>('protocol-select').addEventListener('change', (ev) => {
@@ -1288,41 +1320,45 @@ function wireDomEvents(): void {
     item.manualOverride = true;
     state.selectedEnvelopeIdx = 0;
     state.selectedNodeId = null;
+    closeMoreMenu();
     void runInspectionForSelectedItem(true);
   });
 
   el<HTMLInputElement>('field-filter').addEventListener('input', (ev) => {
     state.fieldFilter = (ev.target as HTMLInputElement).value;
     const activeView = getActiveEnvelopeView();
-    if (activeView?.decoded) {
+    if (state.activeTab === 'tree' && activeView?.decoded) {
       renderFieldTree(activeView.decoded, activeView);
     }
   });
 
   el<HTMLInputElement>('toggle-field0').addEventListener('change', (ev) => {
     state.showField0 = (ev.target as HTMLInputElement).checked;
-    const activeView = getActiveEnvelopeView();
-    if (activeView?.decoded) {
-      renderFieldTree(activeView.decoded, activeView);
-      renderDetailPanes(getSelectedItem(), activeView);
-    }
+    renderWorkspace();
   });
 
-  el<HTMLButtonElement>('btn-expand-all').addEventListener('click', () =>
-    expandOrCollapseAll(true),
-  );
-  el<HTMLButtonElement>('btn-collapse-all').addEventListener('click', () =>
-    expandOrCollapseAll(false),
-  );
+  el<HTMLButtonElement>('btn-expand-all').addEventListener('click', () => {
+    closeMoreMenu();
+    expandOrCollapseAll(true);
+  });
+  el<HTMLButtonElement>('btn-collapse-all').addEventListener('click', () => {
+    closeMoreMenu();
+    expandOrCollapseAll(false);
+  });
 
   el<HTMLButtonElement>('btn-copy-json').addEventListener('click', () => {
     const activeView = getActiveEnvelopeView();
     if (activeView?.decoded) {
       void copyText(activeView.decoded.jsonText, 'JSON');
+    } else if (activeView?.envelope.endStream) {
+      void copyText(formatDecodedJson(activeView.envelope.endStream.rawJson, 2), 'JSON');
+    } else if (activeView?.envelope.trailers) {
+      void copyText(formatDecodedJson(activeView.envelope.trailers, 2), 'trailers');
     }
   });
 
   el<HTMLButtonElement>('btn-export-json').addEventListener('click', () => {
+    closeMoreMenu();
     const item = getSelectedItem();
     const activeView = getActiveEnvelopeView();
     if (!item || !activeView?.decoded) return;
@@ -1334,10 +1370,11 @@ function wireDomEvents(): void {
     const suffix =
       (state.inspected?.envelopes.length ?? 0) > 1 ? `-${state.selectedEnvelopeIdx}` : '';
     downloadBlob(activeView.decoded.jsonText, `${baseName}${suffix}.json`, 'application/json');
-    showToast('Exported .json');
+    showToast('Saved .json');
   });
 
   el<HTMLButtonElement>('btn-save-obuf').addEventListener('click', () => {
+    closeMoreMenu();
     const item = getSelectedItem();
     const activeView = getActiveEnvelopeView();
     if (!item || !activeView) return;
@@ -1353,56 +1390,39 @@ function wireDomEvents(): void {
     showToast('Saved .obuf');
   });
 
-  for (const [tabId, key] of [
-    ['tab-hex', 'hex'],
-    ['tab-json', 'json'],
-    ['tab-headers', 'headers'],
-  ] as const) {
-    el<HTMLButtonElement>(tabId).addEventListener('click', () => {
-      state.detailTab = key;
-      if (state.mobileTab !== 'fields') {
-        state.mobileTab = key;
-      }
-      renderDetailPanes(getSelectedItem(), getActiveEnvelopeView());
-    });
-  }
-
   el<HTMLButtonElement>('btn-mobile-back').addEventListener('click', () => {
     state.mobileScreen = 'list';
-    syncMobileAttributes();
+    state.hexOpen = false;
+    syncLayoutAttributes();
   });
 
-  el<HTMLButtonElement>('btn-mobile-jump-hex').addEventListener('click', () => {
-    state.mobileTab = 'hex';
-    state.detailTab = 'hex';
-    renderDetailPanes(getSelectedItem(), getActiveEnvelopeView());
+  // Close `more-menu` when clicking outside or pressing Escape
+  document.addEventListener('click', (ev) => {
+    const menu = el<HTMLDetailsElement>('more-menu');
+    if (!menu.open) return;
+    if (!menu.contains(ev.target as Node)) {
+      menu.open = false;
+    }
   });
 
-  for (const [mTabId, key] of [
-    ['mtab-fields', 'fields'],
-    ['mtab-hex', 'hex'],
-    ['mtab-json', 'json'],
-    ['mtab-headers', 'headers'],
-  ] as const) {
-    el<HTMLButtonElement>(mTabId).addEventListener('click', () => {
-      state.mobileTab = key;
-      if (key !== 'fields') {
-        state.detailTab = key;
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      const menu = el<HTMLDetailsElement>('more-menu');
+      if (menu.open) {
+        menu.open = false;
       }
-      renderDetailPanes(getSelectedItem(), getActiveEnvelopeView());
-    });
-  }
+    }
+  });
 
   let wasCompactHex = window.innerWidth < 520;
   window.addEventListener('resize', () => {
     const nowCompact = window.innerWidth < 520;
-    if (nowCompact !== wasCompactHex && state.detailTab === 'hex') {
+    if (nowCompact !== wasCompactHex && state.hexOpen) {
       wasCompactHex = nowCompact;
-      renderDetailPanes(getSelectedItem(), getActiveEnvelopeView());
+      renderHexPane(getSelectedItem(), getActiveEnvelopeView());
     }
   });
 
-  // Full-panel .obuf drag and drop
   const dropOverlay = el<HTMLElement>('drop-overlay');
   let dragDepth = 0;
 
@@ -1436,9 +1456,17 @@ function wireDomEvents(): void {
 async function bootstrap(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   const themeParam = params.get('theme');
-  if (themeParam === 'light' || themeParam === 'dark') {
-    state.themePref = themeParam;
+  state.theme =
+    themeParam === 'light' || themeParam === 'dark' ? themeParam : getDevToolsThemeName();
+  if (params.get('hex') === '1') {
+    state.hexOpen = true;
   }
+  const tabParam = params.get('tab');
+  if (tabParam === 'tree' || tabParam === 'json' || tabParam === 'headers') {
+    state.activeTab = tabParam;
+  }
+
+  syncStaticIcons();
   applyTheme();
   wireDomEvents();
 
@@ -1488,12 +1516,14 @@ async function bootstrap(): Promise<void> {
       state.mobileScreen = mScreen;
     }
     const mTab = params.get('mobileTab');
-    if (mTab === 'fields' || mTab === 'hex' || mTab === 'json' || mTab === 'headers') {
-      state.mobileTab = mTab;
-      if (mTab !== 'fields') state.detailTab = mTab;
-      renderDetailPanes(getSelectedItem(), getActiveEnvelopeView());
+    if (mTab === 'hex') {
+      state.hexOpen = true;
+      renderHexPane(getSelectedItem(), getActiveEnvelopeView());
+    } else if (mTab === 'json' || mTab === 'headers') {
+      state.activeTab = mTab;
+      renderWorkspace();
     }
-    syncMobileAttributes();
+    syncLayoutAttributes();
     return;
   }
 

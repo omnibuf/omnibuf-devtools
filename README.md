@@ -6,15 +6,15 @@
 
 Manifest V3 browser Developer Tools extension for inspecting **[OmniBuf v0.1](https://omnibuf.com/spec)** HTTP responses, ConnectRPC unary and server-streaming calls, gRPC-Web streams, and local `.obuf` capture files. Built on [`@omnibuf/core`](https://github.com/omnibuf/omnibuf-es/tree/main/packages/omnibuf) and [`@omnibuf/web`](https://github.com/omnibuf/omnibuf-es/tree/main/packages/omnibuf-web).
 
-![OmniBuf DevTools dark workstation inspecting a gzipped ConnectRPC stream](./docs/screenshots/desktop-dark.png)
+![OmniBuf DevTools dark workstation inspecting a ConnectRPC stream](./docs/screenshots/desktop-dark.png)
 
-|                           Light Workstation Theme                           |                       ConnectRPC `EndStreamResponse` Metadata                        |
-| :-------------------------------------------------------------------------: | :----------------------------------------------------------------------------------: |
-| ![OmniBuf DevTools light workstation](./docs/screenshots/desktop-light.png) | ![ConnectRPC EndStreamResponse metadata envelope](./docs/screenshots/stream-end.png) |
+|                              Light Theme                              |                           Optional Hex Side Panel                           |
+| :-------------------------------------------------------------------: | :-------------------------------------------------------------------------: |
+| ![OmniBuf DevTools light theme](./docs/screenshots/desktop-light.png) | ![Optional synchronized hex side panel](./docs/screenshots/desktop-hex.png) |
 
-|                     Narrow Dock: Captured Traffic                     |                             Narrow Dock: Field Tree                              |                    Narrow Dock: 8-Byte Hex & ASCII                     |
-| :-------------------------------------------------------------------: | :------------------------------------------------------------------------------: | :--------------------------------------------------------------------: |
-| ![Mobile traffic capture list](./docs/screenshots/mobile-traffic.png) | ![Mobile field tree and byte slice footer](./docs/screenshots/mobile-fields.png) | ![Mobile 8-byte hex and ASCII view](./docs/screenshots/mobile-hex.png) |
+|                     Narrow Dock: Requests                     |                  Narrow Dock: Field Tree                   |                  Narrow Dock: Optional Hex                   |
+| :-----------------------------------------------------------: | :--------------------------------------------------------: | :----------------------------------------------------------: |
+| ![Mobile request list](./docs/screenshots/mobile-traffic.png) | ![Mobile field tree](./docs/screenshots/mobile-fields.png) | ![Mobile 8-byte hex view](./docs/screenshots/mobile-hex.png) |
 
 ---
 
@@ -45,7 +45,7 @@ Ordinary Protobuf traffic (`application/proto`, `application/grpc-web+proto`) is
 
 - **Zero-schema wire inspection:** OmniBuf encodes 16 explicit wire types (`0..15`) in the low nibble of every field tag. Schema-less responses render as numbered fields (`field_1`, `field_2`) with exact scalar, array, map, and sub-message structure.
 - **Inline `Field #0` `SchemaMeta` resolution:** Self-describing packets automatically populate `.proto` field names and message type names across root and nested sub-messages.
-- **Synchronized byte-offset & hex slice view:** Every field node displays its exact packet offset and byte length, color-coding tag bytes, container length headers, and payload bytes. Clicking any byte cell in the 16-byte hex dump jumps to the deepest owning field node.
+- **Hover wire metadata & optional hex panel:** Field rows stay clean as `key: value` pairs at rest, revealing `#field · wireType · byteLength · hex` on hover. Toggling **Hex** opens a synchronized 16-byte hex + ASCII side panel with color-coded tag, header, and payload spans.
 - **Lossless 64-bit JSON export:** Copy or download decoded JSON directly from the panel; 64-bit integers beyond `Number.MAX_SAFE_INTEGER` serialize as exact decimal strings.
 - **Zero host permissions:** Captures completed responses strictly via `chrome.devtools.network` and local `.obuf` drag-and-drop.
 

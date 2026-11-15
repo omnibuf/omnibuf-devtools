@@ -3,52 +3,51 @@ name: 'OmniBuf DevTools'
 description: 'Browser Developer Tools inspector for OmniBuf HTTP, ConnectRPC, gRPC-Web, and .obuf wire traffic'
 colors:
   signal-orange: '#ff4f18'
-  acid-lime: '#d4ff33'
   scalar-sky: '#93c5fd'
   string-emerald: '#86efac'
-  container-amber: '#fcd34d'
+  container-amber: '#f59e0b'
   payload-mint: '#10b981'
   obsidian-canvas: '#0f1115'
-  slate-surface: '#151921'
-  instrument-chrome: '#1b202b'
-  elevated-slate: '#222836'
-  selected-slate: '#283348'
-  subtle-rule: '#2a3140'
-  strong-rule: '#424e66'
-  frost-ink: '#f3f5f8'
-  pewter-ink: '#bcc4d4'
-  muted-slate-ink: '#939db0'
+  slate-surface: '#141820'
+  instrument-chrome: '#181d27'
+  elevated-slate: '#202736'
+  selected-slate: '#232d40'
+  subtle-rule: '#262e3d'
+  strong-rule: '#3c485e'
+  frost-ink: '#eef1f6'
+  pewter-ink: '#b4bece'
+  muted-slate-ink: '#7f8a9e'
   carbon-ink: '#111111'
-  drafting-paper: '#f4f0e6'
-  warm-cream: '#faf8f2'
-  stone-chrome: '#e5e0d5'
+  drafting-paper: '#f5f2ea'
+  warm-cream: '#faf8f3'
+  stone-chrome: '#ede9df'
 typography:
   headline:
     fontFamily: 'IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
-    fontSize: '1rem'
-    fontWeight: 700
+    fontSize: '0.9375rem'
+    fontWeight: 600
     lineHeight: 1.35
   title:
     fontFamily: 'IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
-    fontSize: '0.875rem'
-    fontWeight: 700
+    fontSize: '0.8125rem'
+    fontWeight: 600
     lineHeight: 1.4
     letterSpacing: '-0.01em'
   body:
     fontFamily: 'IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
-    fontSize: '0.875rem'
+    fontSize: '0.8125rem'
     fontWeight: 500
-    lineHeight: 1.45
+    lineHeight: 1.5
   label:
-    fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
+    fontFamily: 'IBM Plex Sans, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif'
     fontSize: '0.75rem'
-    fontWeight: 600
+    fontWeight: 500
     lineHeight: 1.4
   mono-data:
     fontFamily: 'IBM Plex Mono, ui-monospace, SFMono-Regular, Menlo, Consolas, monospace'
     fontSize: '0.78125rem'
     fontWeight: 400
-    lineHeight: 1.45
+    lineHeight: 1.5
 rounded:
   xs: '3px'
   sm: '4px'
@@ -59,199 +58,152 @@ spacing:
   sm: '8px'
   md: '12px'
   lg: '18px'
-  xl: '24px'
+  xl: '28px'
 components:
   button-signal:
     backgroundColor: '{colors.signal-orange}'
     textColor: '{colors.carbon-ink}'
     typography: '{typography.label}'
     rounded: '{rounded.sm}'
-    padding: '6px 12px'
-  button-tool:
-    backgroundColor: '{colors.slate-surface}'
-    textColor: '{colors.frost-ink}'
+    padding: '0 12px'
+    height: '30px'
+  button-quiet:
+    backgroundColor: 'transparent'
+    textColor: '{colors.pewter-ink}'
     typography: '{typography.label}'
     rounded: '{rounded.sm}'
-    padding: '4px 10px'
-    height: '30px'
-  button-tool-hover:
-    backgroundColor: '{colors.elevated-slate}'
+    padding: '0 8px'
+    height: '26px'
+  button-quiet-active:
+    backgroundColor: '{colors.selected-slate}'
     textColor: '{colors.frost-ink}'
-  badge-schema:
-    backgroundColor: '{colors.acid-lime}'
-    textColor: '{colors.carbon-ink}'
-    typography: '{typography.label}'
-    rounded: '{rounded.xs}'
-    padding: '3px 8px'
   chip-envelope-active:
     backgroundColor: '{colors.selected-slate}'
     textColor: '{colors.frost-ink}'
     typography: '{typography.label}'
     rounded: '{rounded.sm}'
-    padding: '5px 10px'
-  card-state:
-    backgroundColor: '{colors.obsidian-canvas}'
-    textColor: '{colors.frost-ink}'
-    rounded: '{rounded.md}'
-    padding: '18px'
+    padding: '0 9px'
   input-filter:
-    backgroundColor: '{colors.obsidian-canvas}'
+    backgroundColor: '{colors.slate-surface}'
     textColor: '{colors.frost-ink}'
     typography: '{typography.label}'
     rounded: '{rounded.sm}'
-    padding: '4px 9px'
-    height: '30px'
+    padding: '2px 8px'
+    height: '26px'
 ---
 
 # Design System: OmniBuf DevTools
 
 ## Overview
 
-**Creative North Star: "The Packet Oscilloscope"**
+**Creative North Star: "Quiet Packet Clarity"**
 
-OmniBuf DevTools translates the Swiss Engineering Brutalist identity of `omnibuf.com` into a high-density Operate-mode browser inspector. Engineers open this panel inside Chrome or Firefox Developer Tools to dissect binary HTTP bodies, ConnectRPC streams, and gRPC-Web envelopes in milliseconds. Every pixel serves wire legibility. Decorative marketing flourishes, glassmorphism, soft ambient shadows, and oversized hero whitespace are absent.
+OmniBuf DevTools brings binary HTTP, ConnectRPC, and gRPC-Web inspection down to the calm clarity of Chrome DevTools' JSON Preview tab. Decoded fields read as clean `key: value` pairs at rest, free of competing wire-type pills, redundant hex conversions, or permanent byte-size columns. Wire-level details (`#field · wireType · byteLength · hex`) surface quietly on row hover, and the synchronized 16-byte Hex + ASCII inspector stays tucked inside an optional side panel until toggled open.
 
-Tonal slate surfaces establish clear pane boundaries in dark mode, paired with a warm drafting-paper light mode that matches host DevTools preferences. High-voltage brand accents appear strictly as semantic signals: Signal Orange marks active selection and primary decode actions, while Acid Lime certifies inline `Field #0` (`SchemaMeta`) self-describing packets. Bidirectional cursor coupling binds the decoded field tree directly to raw hexadecimal and ASCII byte slices.
+Tonal slate surfaces in dark mode and warm drafting-paper neutrals in light mode carry nearly the entire interface. Signal Orange appears strictly as a purposeful indicator: a 2px active bar on the selected request, active tab underlines, keyboard focus rings, tag-byte highlights inside the optional Hex panel, and primary decode buttons.
 
 **Key Characteristics:**
 
-- Dark-first workstation slate surfaces paired with a warm drafting-paper light theme synced to `chrome.devtools.panels.themeName`.
-- Dual-voice IBM Plex typography: geometric sans chrome framing tabular monospace wire data.
-- Semantic high-chroma accents reserved for selection state, `Field #0` schema presence, and tag/header/payload byte boundaries.
-- Flat 1px structural hairlines with zero drop shadows across all panes and toolbars.
-- Adaptive three-tier layout scaling from a 3-pane desktop workstation down to a Master-Detail mobile inspector with an 8-byte hex grid.
+- Calm 2-pane default split (`Requests` rail on the left, `Tree | JSON | Headers` stage on the right) with an on-demand `Hex` side panel.
+- Clean `key: value` field tree with progressive hover disclosure for wire numbers, wire types, byte sizes, and raw hex slices.
+- Dual-voice IBM Plex typography: geometric sans chrome framing tabular monospace paths, trees, and byte grids.
+- Restrained neutral hierarchy that suppresses healthy `200` badges, bordered uppercase pills, and stacked toolbars.
+- Adaptive layout scaling from a 2/3-pane desktop split down to a single-bar Master-Detail mobile inspector with 8-byte hex rows.
 
 ## Colors
 
-High-contrast instrument neutrals carry 95% of the viewport so saturated wire-role markers read at a glance.
+Quiet instrument neutrals carry 97% of the viewport so syntax values and byte-slice highlights read immediately.
 
 ### Primary
 
-- **Signal Orange** (`#ff4f18`): Marks the active traffic row border, active stream envelope border, selected field-tree outline, keyboard focus ring, tag-byte underline, and primary manual-decode CTA buttons. Always pair solid fills with Carbon Ink (`#111111`) text for a 6.2:1 contrast ratio.
+- **Signal Orange** (`#ff4f18`): Marks the 2px active request indicator, active view-tab underline, keyboard focus ring, tag-byte underline in the Hex panel, and primary manual-decode CTA buttons. Solid fills always use Carbon Ink (`#111111`) text.
 
-### Secondary
+### Semantic Data Accents
 
-- **Acid Lime** (`#d4ff33`): Reserved exclusively for `Field #0` (`SchemaMeta`) self-describing packet badges and schema key labels in dark mode. Solid Acid Lime badges use Carbon Ink (`#111111`) text at 16.4:1 contrast.
-
-### Tertiary
-
-- **Scalar Sky** (`#93c5fd`): Highlights numeric and boolean wire-type pills (`uint`, `sint`, `fixed32`, `float64`, `bool=1`) in dark mode, shifting to deep cobalt (`#1e40af`) in light mode.
-- **String Emerald** (`#86efac`): Marks UTF-8 `string` wire-type pills and string literal previews in dark mode, shifting to forest emerald (`#065f46`) in light mode.
-- **Container Amber** (`#fcd34d`): Identifies nested `submsg`, `array<T>`, and `map<K, V>` wire-type pills plus container byte-length headers.
-- **Payload Mint** (`#10b981`): Underlines payload value bytes in the hex slice inspector to separate content bytes from tag and length-header bytes.
+- **Scalar Sky** (`#93c5fd`): Highlights numeric and boolean values in the field tree (`#1d4ed8` in light mode).
+- **String Emerald** (`#86efac`): Highlights UTF-8 string literals in the field tree (`#047857` in light mode).
+- **Container Amber** (`#f59e0b`): Underlines container length headers inside the optional Hex inspector.
+- **Payload Mint** (`#10b981`): Underlines payload value bytes inside the optional Hex inspector.
 
 ### Neutral
 
-- **Obsidian Canvas** (`#0f1115`): Deepest dark-mode ground used behind hex dumps, JSON previews, filter inputs, and envelope strips.
-- **Slate Surface** (`#151921`): Primary pane background for the traffic list, field tree, and detail inspector.
-- **Instrument Chrome** (`#1b202b`): Header and toolbar surface separating controls from scrollable data viewports.
-- **Elevated Slate** (`#222836`) and **Selected Slate** (`#283348`): Interactive hover and active row states.
-- **Subtle Rule** (`#2a3140`) and **Strong Rule** (`#424e66`): Crisp 1px structural pane dividers and active tab borders.
-- **Frost Ink** (`#f3f5f8`), **Pewter Ink** (`#bcc4d4`), and **Muted Slate Ink** (`#939db0`): Three-step dark-mode text hierarchy maintaining WCAG AA legibility across 12px monospace readouts.
-- **Drafting Paper** (`#f4f0e6`), **Warm Cream** (`#faf8f2`), **Stone Chrome** (`#e5e0d5`), and **Carbon Ink** (`#111111`): Light-mode architectural paper surfaces and ink inherited from `omnibuf.com`.
+- **Obsidian Canvas** (`#0f1115`): Recessed dark-mode ground for the request list, stream frame strip, and optional Hex panel.
+- **Slate Surface** (`#141820`): Primary reading surface for the decoded field tree, JSON preview, and headers table.
+- **Instrument Chrome** (`#181d27`): Slim 36px-38px topbar and response bar surface.
+- **Elevated Slate** (`#202736`) and **Selected Slate** (`#232d40`): Subtle hover and selected row states.
+- **Subtle Rule** (`#262e3d`) and **Strong Rule** (`#3c485e`): 1px structural pane dividers and popover borders.
+- **Frost Ink** (`#eef1f6`), **Pewter Ink** (`#b4bece`), and **Muted Slate Ink** (`#7f8a9e`): Three-step dark-mode text hierarchy.
+- **Drafting Paper** (`#f5f2ea`), **Warm Cream** (`#faf8f3`), **Stone Chrome** (`#ede9df`), and **Carbon Ink** (`#111111`): Warm light-mode surfaces synced with host DevTools preferences.
 
 ### Named Rules
 
-**The Dark-Ink Accent Rule.** Solid Signal Orange and Acid Lime fills always carry Carbon Ink (`#111111`) text, never white text. Light mode frames both colored fills with a `1px solid #111111` border and crisp `1px 1px 0 #111111` offset edge so bright fills never bleed into Stone Chrome.
+**The Dark-Ink Accent Rule.** Solid Signal Orange fills always pair with Carbon Ink (`#111111`) text, never white text.
 
-**The Semantic Lime Rule.** Acid Lime appears only when an OmniBuf payload carries inline `Field #0` schema metadata; never spend it on generic success pills or decorative badges.
+**The Quiet Default Rule.** Healthy HTTP `200` responses, resting field wire types, and resting byte sizes remain unbadged and hidden until needed; reserve color badges for HTTP/RPC errors (`>= 400`) and active Hex byte-slice inspection.
 
 ## Typography
 
-**Body & UI Chrome Font:** IBM Plex Sans (500, 600, 700, bundled offline as WOFF2)
-**Label & Wire Data Font:** IBM Plex Mono (400, 500, 600, bundled offline as WOFF2)
-
-**Character:** IBM Plex Sans keeps toolbar labels and state cards crisp at compact panel heights, while IBM Plex Mono aligns hexadecimal offsets, field tags, wire-type chips, and scalar values on a rigid character grid.
+**UI Chrome Font:** IBM Plex Sans (500, 600, 700, bundled offline as WOFF2)
+**Wire Data Font:** IBM Plex Mono (400, 500, 600, bundled offline as WOFF2)
 
 ### Hierarchy
 
-- **Headline** (700, `1rem` / 16px, line-height 1.35): State card titles (`Inspect OmniBuf packets and RPC streams`, `Connect EndStreamResponse Metadata`).
-- **Title** (700, `0.875rem` / 14px, line-height 1.4, `-0.01em` tracking): Topbar brand wordmark.
-- **Body** (500, `0.875rem` / 14px, line-height 1.45): Empty-state and diagnostic prose, constrained to `600px` max card width (~62ch).
-- **Mono Data** (400/600, `0.78125rem` / 12.5px, line-height 1.45): Field-tree rows, request paths, and JSON previews.
-- **Label** (600, `0.75rem` / 12px, line-height 1.4, `tabular-nums`): Toolbar buttons, protocol pills, byte-offset columns, envelope chips, and hex cells.
+- **Headline** (600, `0.9375rem` / 15px, line-height 1.35): Empty-state and untagged-response titles.
+- **Title** (600, `0.8125rem` / 13px, line-height 1.4, `-0.01em` tracking): Topbar brand wordmark.
+- **Body** (500, `0.8125rem` / 13px, line-height 1.5): Concise empty-state guidance (`max-width: 440px`).
+- **Mono Data** (400/500, `0.78125rem` / 12.5px, line-height 1.5): Field-tree `key: value` rows, request paths, and JSON output.
+- **Label** (500/600, `0.75rem` / 12px, line-height 1.4, `tabular-nums`): Slim toolbar tabs, buttons, hover metadata, and hex cells.
 
 ### Named Rules
 
-**The Tabular Byte Rule.** Every element displaying byte counts, HTTP status codes, field numbers (`#1`), or hexadecimal offsets applies `font-variant-numeric: tabular-nums` so vertical columns never jitter during selection changes.
+**The Tabular Byte Rule.** Every element displaying counts, status codes, hover byte lengths, or hexadecimal offsets applies `font-variant-numeric: tabular-nums`.
 
-**The Offline Font Rule.** Extension bundles ship local WOFF2 subsets inside `dist/fonts/` with zero external stylesheet or CDN requests.
+**The Offline Font Rule.** Extension bundles ship local WOFF2 subsets inside `dist/fonts/` with zero external network requests.
 
 ## Layout
 
-The panel fills `100dvh` inside a locked outer flex frame (`overflow: hidden`) so each pane scrolls independently behind persistent headers.
+The panel fills `100dvh` inside a locked outer flex container (`overflow: hidden`) with a single 38px topbar and a single 36px response bar.
 
-- **Wide Workstation (`>= 1180px`):** Three-column CSS grid (`minmax(240px, 288px) minmax(380px, 1fr) minmax(360px, 456px)`). Captured traffic anchors the left rail, the protocol toolbar and expandable field tree occupy the center stage, and the synchronized Hex / JSON / Headers pane docks on the right.
-- **Medium Docked Split (`768px .. 1179px`):** Two-column grid (`248px minmax(0, 1fr)`) keeping the traffic rail on the left while stacking the field tree over a `260px` detail pane on the right.
-- **Narrow & Side-Docked Master-Detail (`< 768px`):** Switches cleanly between a full-height `Traffic List` screen and a `Request Detail` screen with a `Traffic (N)` back button, a 4-way segmented view switcher (`Fields | Hex | JSON | Headers`), an anchored bottom byte-slice bar, and an 8-byte-per-row hex/ASCII dump below `520px`.
+- **Default 2-Pane Split (`>= 768px`, Hex closed):** Two-column CSS grid (`268px minmax(0, 1fr)`). Captured requests anchor the left rail while the decoded `Tree | JSON | Headers` stage occupies the full remaining width.
+- **Wide 3-Pane Split (`>= 1080px`, Hex open):** Expands to `268px minmax(320px, 1fr) 496px` when the user toggles **Hex**, docking the synchronized 16-byte Hex + ASCII panel on the right (`768px .. 1079px` stacks the open Hex panel below the main viewport).
+- **Narrow & Side-Docked Master-Detail (`< 768px`):** Switches between a full-height `Requests` list and a single-bar `Response` view (`< Requests`, `Tree | JSON | Headers`, `Copy`, `Hex`, and `⋯` options), using an 8-byte-per-row hex grid below `520px`.
 
 ## Elevation & Depth
 
-OmniBuf DevTools uses zero Gaussian blur. Depth comes from stepped surface luminance (`--bg-canvas` recessed behind `--bg-surface`, framed by `--bg-chrome` headers), crisp `1px solid` structural borders, and hard-edged `2px 2px 0` architectural offset steps on standalone state cards. Selected rows use an inset 1px Signal Orange ring (`box-shadow: inset 0 0 0 1px var(--signal-orange)`) so selection never shifts layout geometry. Interactive buttons, tabs, and SVG disclosure chevrons snap across states in `120ms` (`cubic-bezier(0.2, 0, 0, 1)`).
-
-### Named Rules
-
-**The Zero-Blur Rule.** Never apply drop shadows, glow filters, or translucent backdrop blurs inside the DevTools workstation; separate regions with 1px rules and stepped slate or stone fills.
+Pane hierarchy relies on 1px structural borders (`--border-subtle`) and quiet stepped surface fills (`--bg-canvas` vs `--bg-surface` vs `--bg-chrome`). Only the floating `⋯` options popover uses an elevation shadow (`--popover-shadow`) to separate the menu from underlying tree rows. Interactive states snap in `100ms-120ms` (`cubic-bezier(0.2, 0, 0, 1)`).
 
 ## Shapes
 
-Tight, utilitarian radii keep dense toolbars aligned with browser DevTools chrome:
-
-- **Micro pills (`3px`):** Wire-type chips (`fixed32`, `submsg`), HTTP status pills (`200`), and field-tree row selection bounds.
-- **Controls & tabs (`4px`):** Toolbar buttons, search inputs, protocol selector, envelope chips, and segmented tab groups.
-- **State & drop cards (`6px`):** Standalone onboarding card, untagged response override gate, and drag-and-drop `.obuf` target.
+- **Micro indicators (`3px`):** Error status pills and segmented scope buttons.
+- **Controls (`4px`):** Quiet toolbar buttons, filter inputs, stream frame tabs, and protocol selects.
+- **Floating menu (`6px`):** Overflow options popover (`#more-menu`) and `.obuf` drop target.
 
 ## Components
 
-Controls feel crisp, immediate, and mechanical, built for rapid mouse and keyboard traversal across hundreds of RPC frames.
+### Buttons & Tabs
 
-### Buttons
+- **View Tabs (`view-tab`):** Clean 36px text tabs (`Tree`, `JSON`, `Headers`) with a 2px Signal Orange bottom bar on the active tab.
+- **Quiet Action (`btn-quiet`):** Borderless 26px text button (`Open`, `Clear`, `Copy`, `Hex`) that shifts to `--bg-selected` with `--border-strong` when toggled active (`Hex`).
+- **Icon Action (`btn-icon`):** 26x26px inline SVG button (`stroke-width="1.5"`) for theme switching, overflow options (`⋯`), and closing the Hex panel (`×`).
+- **Primary Signal (`btn-signal`):** Solid Signal Orange (`#ff4f18`) CTA with Carbon Ink (`#111111`) text (`Open .obuf`, `Decode as OmniBuf`).
 
-- **Shape:** Tight `4px` corners (`30px` standard toolbar height).
-- **Primary Signal (`btn-signal`):** Solid Signal Orange (`#ff4f18`) fill, Carbon Ink (`#111111`) bold 12px monospace label, `6px 12px` padding. Used once per state card for primary actions (`Open .obuf file`, `Decode as OmniBuf`).
-- **Toolbar (`btn-tool`):** Slate Surface (`#151921`) fill, `1px solid` Subtle Rule (`#2a3140`), `4px 10px` padding. Shifts to Elevated Slate (`#222836`) with Strong Rule (`#424e66`) on hover.
-- **Focus:** `2px solid` Signal Orange outline with `1px` offset on `:focus-visible`.
+### Simplified Field Tree & Optional Hex Grid
 
-### Chips
-
-- **Envelope Chip (`env-chip`):** Monospace tab button inside the horizontal stream strip (`#0 MSG gzip -> 375 B @+0x0000`, `#2 END metadata`). Active envelope applies Selected Slate (`#283348`) and a `1px solid` Signal Orange border.
-- **Schema Badge (`meta-badge.is-schema`):** Solid Acid Lime (`#d4ff33`) fill with Carbon Ink (`#111111`) text (`Field #0 · PeerUpdate`).
-
-### Cards / Containers
-
-- **Corner Style:** `6px` radius.
-- **Background:** Recessed Obsidian Canvas (`#0f1115`) in dark mode, Warm Cream (`#faf8f2`) in light mode.
-- **Shadow Strategy:** Flat, zero shadow.
-- **Border:** `1px solid` Subtle Rule (`#2a3140`), switching to error crimson (`#fca5a5`) on wire-decode failure cards.
-- **Internal Padding:** `18px` with `12px` vertical stack gap.
-
-### Inputs / Fields
-
-- **Style:** `30px` height, recessed `--bg-canvas` background, `1px solid var(--border-subtle)`, `4px` radius, `12px` IBM Plex Mono input text.
-- **Focus:** Parent `.search-box:focus-within` shifts border to Signal Orange (`#ff4f18`).
-
-### Navigation
-
-- **Segmented Scope Switcher (`seg-group`):** Switches between `OmniBuf` (auto-detected traffic) and `All HTTP` (manual override candidates) with live tabular count badges.
-- **Detail & Mobile View Tabs (`detail-tab`):** Switches right-pane or mobile detail view across `Fields`, `Hex`, `JSON`, and `Headers` using Elevated Slate active fills and Strong Rule borders.
-
-### Synchronized Field Tree & Byte-Slice Hex Grid
-
-- **Field Tree Row (`tree-row`):** Indents nested containers by `18px` per depth level (`12px` on mobile), pairing field number (`#7`), field name (`location`), color-coded wire-type badge (`submsg`), truncated summary preview, and right-aligned `+0x0113 · 39 B` span metrics.
-- **Hex & ASCII Slice Grid (`hex-grid`):** Paginates payloads in 4 KiB windows (`16` bytes/row on desktop, `8` bytes/row below `520px`). Tag bytes carry Signal Orange tint and underline (`--byte-tag-bg` / `--byte-tag-line`), container headers carry Amber (`--byte-hdr-bg` / `--byte-hdr-line`), and payload bytes carry Emerald Mint (`--byte-pay-bg` / `--byte-pay-line`). Clicking any byte resolves and expands the deepest owning field-tree node.
+- **Field Tree Row (`tree-row`):** Renders `twisty` + `key:` + formatted value (`64512`, `"edge-fra-01"`, `PeerLocation {5}`, `[1]`). Expanding a container hides its collapsed item count so parent rows read cleanly above indented children. Hovering or keyboard-focusing a row reveals `.tree-hover-meta` (`#1 · fixed32 · 5 B · 0x2900fc0000`) aligned to the right.
+- **Hex & ASCII Slice Grid (`hex-grid`):** Paginates payloads in 4 KiB windows inside the optional `#pane-hex` drawer, highlighting tag bytes (Signal Orange), length headers (Amber), and payload bytes (Mint) in lockstep with tree selection.
 
 ## Do's and Don'ts
 
 ### Do:
 
-- **Do** pair Signal Orange (`#ff4f18`) and Acid Lime (`#d4ff33`) solid fills with Carbon Ink (`#111111`) text.
-- **Do** keep desktop monospace labels and byte readouts at `12px` or larger with `tabular-nums` enabled.
-- **Do** collapse narrow viewports (`< 768px`) into the Master-Detail screen switcher (`Traffic List` vs. `Request Detail`) and 8-byte hex rows (`< 520px`) so zero horizontal overflow occurs.
-- **Do** honor `prefers-reduced-motion: reduce` by collapsing transition and scroll durations.
+- **Do** keep resting field-tree rows focused on `key: value` legibility and reveal wire metadata (`#num`, wire type, byte size, hex) on hover or inside the optional Hex panel.
+- **Do** keep the Hex panel closed by default so primary tree and JSON inspection gets full horizontal breathing room.
+- **Do** keep secondary settings (`Protocol` override, `Field #0` visibility, `Preserve log`, `Expand/Collapse all`, file downloads) tucked inside the `⋯` menu.
+- **Do** honor `prefers-reduced-motion: reduce`.
 
 ### Don't:
 
-- **Don't** stack all three workstation panes vertically on narrow viewports.
-- **Don't** load fonts, icons, or stylesheets over the network; every asset must ship inside `dist/`.
-- **Don't** auto-decode untagged `application/proto` or `application/octet-stream` responses without explicit user confirmation via **Decode as OmniBuf** or the protocol selector.
-- **Don't** introduce drop shadows, glassmorphism, or decorative gradients onto inspector surfaces.
+- **Don't** render green `200` pills, uppercase `[PROTOCOL]` badges, or inline `(0x0000fc00)` hex conversions on resting list or tree rows.
+- **Don't** stack multiple toolbars above the response tree.
+- **Don't** load fonts, icons, or stylesheets from external URLs.
+- **Don't** auto-decode untagged `application/proto` or `application/octet-stream` responses without explicit confirmation.

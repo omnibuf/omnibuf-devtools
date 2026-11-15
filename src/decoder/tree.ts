@@ -224,7 +224,7 @@ function parseRawElementAt(
         nextPos: pos + 4,
         headerLength: 0,
         wireTypeLabel: 'fixed32',
-        summary: `${u32} (0x${u32.toString(16).padStart(8, '0')})`,
+        summary: String(u32),
         scalarValue: u32,
         children: [],
       };
@@ -313,7 +313,7 @@ function parseRawElementAt(
         nextPos,
         headerLength: bodyStart - pos,
         wireTypeLabel: 'bytes',
-        summary: `${slice.byteLength} B (${previewHex(rootPacket, bodyStart, nextPos, 12)})`,
+        summary: `Uint8Array(${slice.byteLength})`,
         scalarValue: slice,
         children: [],
       };
@@ -331,12 +331,12 @@ function parseRawElementAt(
         depth + 1,
       );
       const userFieldCount = subResult.nodes.filter((n) => n.kind !== 'schema').length;
-      const typePrefix = subResult.schema?.typeName ? `${subResult.schema.typeName} · ` : '';
+      const typePrefix = subResult.schema?.typeName ? `${subResult.schema.typeName} ` : '';
       return {
         nextPos,
         headerLength: bodyStart - pos,
         wireTypeLabel: 'submsg',
-        summary: `{ ${typePrefix}${userFieldCount} ${userFieldCount === 1 ? 'field' : 'fields'} }`,
+        summary: `${typePrefix}{${userFieldCount}}`,
         children: subResult.nodes,
       };
     }
@@ -436,7 +436,7 @@ function buildArrayNodes(
       id: elemId,
       kind: 'array-element',
       fieldNumber: null,
-      label: `[${i}]`,
+      label: String(i),
       isSchemaResolved: true,
       wireType: elemType,
       wireTypeLabel: parsed.wireTypeLabel,
@@ -460,7 +460,7 @@ function buildArrayNodes(
   return {
     headerLength: elemStart - lenPrefixStart,
     wireTypeLabel,
-    summary: `[ ${count} ${elemTypeName} ]`,
+    summary: `[${count}]`,
     children,
   };
 }
@@ -517,7 +517,7 @@ function buildMapNodes(
       id: entryId,
       kind: 'map-entry',
       fieldNumber: null,
-      label: `[${keyDisplay}]`,
+      label: keyDisplay,
       isSchemaResolved: true,
       wireType: valWT,
       wireTypeLabel: `${keyTypeName} -> ${valParsed.wireTypeLabel}`,
@@ -541,7 +541,7 @@ function buildMapNodes(
   return {
     headerLength: entryStart - lenPrefixStart,
     wireTypeLabel,
-    summary: `{ ${count} ${count === 1 ? 'entry' : 'entries'} }`,
+    summary: `{${count}}`,
     children,
   };
 }
@@ -609,7 +609,6 @@ function buildMessageNodes(
         depth + 1,
       );
       const mappedCount = meta.fields ? Object.keys(meta.fields).length : 0;
-      const typeLabel = meta.typeName ? `${meta.typeName} · ` : '';
 
       nodes.push({
         id: nodeId,
@@ -624,7 +623,7 @@ function buildMessageNodes(
         headerLength: bodyStart - tagEnd,
         byteLength: nextPos - startOffset,
         wireOffset: wireBaseOffset !== null ? wireBaseOffset + startOffset : null,
-        summary: `{ ${typeLabel}${mappedCount} named ${mappedCount === 1 ? 'field' : 'fields'} }`,
+        summary: meta.typeName ? `${meta.typeName} {${mappedCount}}` : `{${mappedCount}}`,
         hexPreview: previewHex(rootPacket, startOffset, nextPos),
         children: schemaSub.nodes,
       });

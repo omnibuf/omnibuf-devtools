@@ -6,7 +6,6 @@ export const HEX_WINDOW_BYTES = 4096; // 256 rows per page for 60fps DOM renderi
 export interface HexViewOptions {
   packet: Uint8Array;
   selectedNode: FieldTreeNode | null;
-  isFieldNavigable: boolean;
   bytesPerRow?: 8 | 16;
   windowStart: number;
   onSelectByte(byteOffset: number): void;
@@ -39,79 +38,10 @@ export function renderHexInspector(container: HTMLElement, opts: HexViewOptions)
   if (packet.byteLength === 0) {
     const empty = document.createElement('div');
     empty.className = 'pane-empty-note';
-    empty.textContent = '0 bytes in message payload.';
+    empty.textContent = 'Empty payload';
     container.appendChild(empty);
     return;
   }
-
-  // Summary readout bar for the active node (or full packet when none selected)
-  const summaryBar = document.createElement('div');
-  summaryBar.className = 'hex-summary-bar';
-
-  if (selectedNode) {
-    const start = selectedNode.offset;
-    const end = start + selectedNode.byteLength;
-    const tagEnd = start + selectedNode.tagLength;
-    const hdrEnd = tagEnd + selectedNode.headerLength;
-    const payloadBytes = Math.max(0, end - hdrEnd);
-
-    const spanMain = document.createElement('div');
-    spanMain.className = 'hex-summary-metrics';
-
-    const items: Array<{ label: string; value: string; role?: string }> = [
-      {
-        label: 'Packet',
-        value: `+${start}..${end} (0x${formatHexOffset(start)})`,
-      },
-    ];
-    if (selectedNode.wireOffset !== null && selectedNode.wireOffset !== start) {
-      items.push({
-        label: 'Stream',
-        value: `+${selectedNode.wireOffset} (0x${formatHexOffset(selectedNode.wireOffset)})`,
-      });
-    }
-    if (selectedNode.tagLength > 0) {
-      items.push({
-        label: selectedNode.kind === 'map-entry' ? 'Key' : 'Tag',
-        value: `${selectedNode.tagLength} B`,
-        role: 'tag',
-      });
-    }
-    if (selectedNode.headerLength > 0) {
-      items.push({
-        label: 'Header',
-        value: `${selectedNode.headerLength} B`,
-        role: 'header',
-      });
-    }
-    items.push({
-      label: 'Payload',
-      value: `${payloadBytes} B`,
-      role: 'payload',
-    });
-
-    for (const entry of items) {
-      const chip = document.createElement('span');
-      chip.className = entry.role ? `hex-metric hex-metric-${entry.role}` : 'hex-metric';
-      const k = document.createElement('span');
-      k.className = 'hex-metric-key';
-      k.textContent = entry.label;
-      const v = document.createElement('span');
-      v.className = 'hex-metric-val';
-      v.textContent = entry.value;
-      chip.append(k, v);
-      spanMain.appendChild(chip);
-    }
-    summaryBar.appendChild(spanMain);
-  } else {
-    const spanMain = document.createElement('div');
-    spanMain.className = 'hex-summary-metrics';
-    spanMain.textContent = opts.isFieldNavigable
-      ? `${packet.byteLength.toLocaleString()} bytes total · Select any byte to highlight its field`
-      : `${packet.byteLength.toLocaleString()} bytes raw envelope payload`;
-    summaryBar.appendChild(spanMain);
-  }
-  container.appendChild(summaryBar);
 
   // Window pagination controls for payloads > 4 KiB
   const maxWindowStart =

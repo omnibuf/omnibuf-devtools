@@ -42,11 +42,11 @@ const SHOTS = [
     query: '?demo=1&theme=light&item=synthetic-connect-unary',
   },
   {
-    file: 'stream-end.png',
+    file: 'desktop-hex.png',
     width: 1440,
     height: 900,
     mobile: false,
-    query: '?demo=1&theme=dark&item=synthetic-connect-stream&envelope=2',
+    query: '?demo=1&theme=dark&item=synthetic-connect-stream&hex=1',
   },
   {
     file: 'mobile-traffic.png',
@@ -67,7 +67,7 @@ const SHOTS = [
     width: 390,
     height: 844,
     mobile: true,
-    query: '?demo=1&theme=dark&item=synthetic-connect-stream&mobileTab=hex',
+    query: '?demo=1&theme=dark&item=synthetic-connect-stream&hex=1',
   },
 ];
 
