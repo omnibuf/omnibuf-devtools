@@ -1,0 +1,210 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-15T18:01:00Z",
+  "title": "Design System: OmniBuf DevTools",
+  "extensions": {
+    "colorMeta": {
+      "signal-orange": {
+        "role": "primary",
+        "displayName": "Signal Orange",
+        "canonical": "#ff4f18",
+        "tonalRamp": ["#2e0d03", "#541907", "#85270b", "#b83610", "#e64415", "#ff4f18", "#ff8863", "#ffd0c2"]
+      },
+      "acid-lime": {
+        "role": "secondary",
+        "displayName": "Acid Lime",
+        "canonical": "#d4ff33",
+        "tonalRamp": ["#1f2900", "#3a4d00", "#5a7800", "#82ad00", "#add916", "#d4ff33", "#e4ff7a", "#f4ffc7"]
+      },
+      "scalar-sky": {
+        "role": "tertiary",
+        "displayName": "Scalar Sky",
+        "canonical": "#93c5fd",
+        "tonalRamp": ["#0f213d", "#173463", "#1e40af", "#2563eb", "#60a5fa", "#93c5fd", "#bfdbfe", "#e8f2ff"]
+      },
+      "string-emerald": {
+        "role": "tertiary",
+        "displayName": "String Emerald",
+        "canonical": "#86efac",
+        "tonalRamp": ["#062e22", "#064e3b", "#065f46", "#059669", "#34d399", "#86efac", "#bbf7d0", "#e6fcef"]
+      },
+      "container-amber": {
+        "role": "tertiary",
+        "displayName": "Container Amber",
+        "canonical": "#fcd34d",
+        "tonalRamp": ["#2e1c05", "#543308", "#78350f", "#b45309", "#f59e0b", "#fcd34d", "#fde68a", "#fef7d6"]
+      },
+      "payload-mint": {
+        "role": "tertiary",
+        "displayName": "Payload Mint",
+        "canonical": "#10b981",
+        "tonalRamp": ["#05261d", "#094232", "#0d634a", "#0f8a65", "#10b981", "#47d1a2", "#8ee6c6", "#d7f7eb"]
+      },
+      "obsidian-canvas": {
+        "role": "neutral",
+        "displayName": "Obsidian Canvas",
+        "canonical": "#0f1115",
+        "tonalRamp": ["#0f1115", "#151921", "#1b202b", "#222836", "#2a3140", "#424e66", "#939db0", "#f3f5f8"]
+      },
+      "slate-surface": {
+        "role": "neutral",
+        "displayName": "Slate Surface",
+        "canonical": "#151921",
+        "tonalRamp": ["#0f1115", "#151921", "#1e2432", "#283348", "#3b4761", "#5c6b8a", "#9aa6bf", "#eef1f6"]
+      },
+      "frost-ink": {
+        "role": "neutral",
+        "displayName": "Frost Ink",
+        "canonical": "#f3f5f8",
+        "tonalRamp": ["#11141a", "#262c38", "#424b5e", "#66728a", "#939db0", "#bcc4d4", "#dde2ec", "#f3f5f8"]
+      },
+      "drafting-paper": {
+        "role": "neutral",
+        "displayName": "Drafting Paper",
+        "canonical": "#f4f0e6",
+        "tonalRamp": ["#1f1d19", "#38352f", "#575249", "#787265", "#a8a193", "#c2bcb0", "#e5e0d5", "#f4f0e6"]
+      }
+    },
+    "typographyMeta": {
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "State card headings for standalone onboarding, decode diagnostics, and RPC trailer summaries."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Topbar brand wordmark and primary region headers."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Diagnostic explanations and untagged response guidance."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Tabular monospace controls, badges, offsets, and hex cells."
+      },
+      "mono-data": {
+        "displayName": "Mono Data",
+        "purpose": "Expandable field-tree rows, request paths, and JSON payload previews."
+      }
+    },
+    "shadows": [
+      {
+        "name": "selection-ring",
+        "value": "inset 0 0 0 1px #ff4f18",
+        "purpose": "Non-layout-shifting active selection outline on field-tree rows."
+      }
+    ],
+    "motion": [
+      {
+        "name": "reduced-motion-guard",
+        "value": "0.01ms under prefers-reduced-motion: reduce",
+        "purpose": "Collapses transition and scroll durations when reduced motion is active."
+      }
+    ],
+    "breakpoints": [
+      { "name": "compact-hex", "value": "520px" },
+      { "name": "mobile-master-detail", "value": "767px" },
+      { "name": "workstation-3col", "value": "1180px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Signal Button",
+      "kind": "button",
+      "refersTo": "button-signal",
+      "description": "High-contrast primary action button for manual OmniBuf decoding and file import.",
+      "html": "<button type=\"button\" class=\"ds-btn-signal\">Decode as OmniBuf</button>",
+      "css": ".ds-btn-signal { background: #ff4f18; color: #111111; border: 1px solid #ff4f18; border-radius: 4px; padding: 6px 12px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 700; cursor: pointer; } .ds-btn-signal:hover { filter: brightness(1.07); } .ds-btn-signal:focus-visible { outline: 2px solid #ff4f18; outline-offset: 2px; }"
+    },
+    {
+      "name": "Toolbar Action Button",
+      "kind": "button",
+      "refersTo": "button-tool",
+      "description": "Compact chrome button for JSON copy, .obuf export, and tree expansion.",
+      "html": "<button type=\"button\" class=\"ds-btn-tool\">Copy JSON</button>",
+      "css": ".ds-btn-tool { height: 30px; padding: 4px 10px; background: #151921; color: #f3f5f8; border: 1px solid #2a3140; border-radius: 4px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 500; cursor: pointer; } .ds-btn-tool:hover { background: #222836; border-color: #424e66; } .ds-btn-tool:focus-visible { outline: 2px solid #ff4f18; outline-offset: 1px; }"
+    },
+    {
+      "name": "Field #0 Schema Badge",
+      "kind": "chip",
+      "refersTo": "badge-schema",
+      "description": "Semantic Acid Lime badge certifying inline Field #0 SchemaMeta presence.",
+      "html": "<span class=\"ds-badge-schema\">Field #0 · PeerUpdate</span>",
+      "css": ".ds-badge-schema { display: inline-block; padding: 3px 8px; border-radius: 3px; background: #d4ff33; border: 1px solid #d4ff33; color: #111111; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }"
+    },
+    {
+      "name": "Stream Envelope Chip",
+      "kind": "chip",
+      "refersTo": "chip-envelope-active",
+      "description": "Selectable envelope frame pill inside ConnectRPC and gRPC-Web streams.",
+      "html": "<button type=\"button\" class=\"ds-env-chip\"><span class=\"ds-env-kind\">#0 MSG</span><span>gzip -&gt; 375 B @+0x0000</span></button>",
+      "css": ".ds-env-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 4px; background: #283348; border: 1px solid #ff4f18; color: #f3f5f8; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; cursor: pointer; } .ds-env-chip:hover { background: #313e57; } .ds-env-chip:focus-visible { outline: 2px solid #ff4f18; outline-offset: 1px; } .ds-env-kind { color: #f3f5f8; }"
+    },
+    {
+      "name": "Filter Input",
+      "kind": "input",
+      "refersTo": "input-filter",
+      "description": "Monospace search box for filtering captured paths or decoded field names.",
+      "html": "<label class=\"ds-search-box\"><input type=\"search\" class=\"ds-search-input\" placeholder=\"Filter fields\" /></label>",
+      "css": ".ds-search-box { display: flex; align-items: center; height: 30px; width: 220px; padding: 0 9px; border-radius: 4px; background: #0f1115; border: 1px solid #2a3140; } .ds-search-box:focus-within { border-color: #ff4f18; } .ds-search-input { width: 100%; border: none; outline: none; background: transparent; color: #f3f5f8; font-family: 'IBM Plex Mono', monospace; font-size: 12px; }"
+    },
+    {
+      "name": "Field Tree Row & Byte Slice",
+      "kind": "custom",
+      "refersTo": "card-state",
+      "description": "Selected OmniBuf field-tree row paired with color-coded tag and payload hex cells.",
+      "html": "<div class=\"ds-wire-demo\"><div class=\"ds-tree-row\"><span class=\"ds-fnum\">#1</span><span class=\"ds-fname\">asn</span><span class=\"ds-wtype\">fixed32</span><span class=\"ds-fval\">64512 (0x0000fc00)</span><span class=\"ds-fspan\">+0x00f4 · 5 B</span></div><div class=\"ds-hex-row\"><span class=\"ds-off\">00f4</span><span class=\"ds-b-tag\">29</span><span class=\"ds-b-pay\">00</span><span class=\"ds-b-pay\">fc</span><span class=\"ds-b-pay\">00</span><span class=\"ds-b-pay\">00</span></div></div>",
+      "css": ".ds-wire-demo { display: flex; flex-direction: column; gap: 8px; padding: 10px; background: #151921; border: 1px solid #2a3140; border-radius: 6px; font-family: 'IBM Plex Mono', monospace; font-size: 12px; font-variant-numeric: tabular-nums; } .ds-tree-row { display: flex; align-items: baseline; gap: 7px; padding: 4px 10px; border-radius: 3px; background: #283348; box-shadow: inset 0 0 0 1px #ff4f18; color: #f3f5f8; } .ds-fnum, .ds-fspan, .ds-off { color: #939db0; } .ds-fname { font-weight: 600; } .ds-wtype { padding: 1px 6px; border-radius: 3px; background: #222836; color: #93c5fd; } .ds-fval { color: #bcc4d4; } .ds-fspan { margin-left: auto; } .ds-hex-row { display: flex; align-items: center; gap: 6px; padding: 4px 8px; background: #0f1115; border-radius: 4px; } .ds-b-tag { padding: 0 3px; background: #4c1d10; color: #ffcab8; border-bottom: 2px solid #ff4f18; font-weight: 600; } .ds-b-pay { padding: 0 3px; background: #123328; color: #a7f3d0; border-bottom: 2px solid #10b981; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Packet Oscilloscope",
+    "overview": "OmniBuf DevTools translates the Swiss Engineering Brutalist identity of omnibuf.com into a high-density Operate-mode browser inspector. Engineers open this panel inside Chrome or Firefox Developer Tools to dissect binary HTTP bodies, ConnectRPC streams, and gRPC-Web envelopes in milliseconds. Every pixel serves wire legibility. Decorative marketing flourishes, glassmorphism, soft ambient shadows, and oversized hero whitespace are absent.\n\nTonal slate surfaces establish clear pane boundaries in dark mode, paired with a warm drafting-paper light mode that matches host DevTools preferences. High-voltage brand accents appear strictly as semantic signals: Signal Orange marks active selection and primary decode actions, while Acid Lime certifies inline Field #0 (SchemaMeta) self-describing packets. Bidirectional cursor coupling binds the decoded field tree directly to raw hexadecimal and ASCII byte slices.",
+    "keyCharacteristics": [
+      "Dark-first workstation slate surfaces paired with a warm drafting-paper light theme synced to chrome.devtools.panels.themeName.",
+      "Dual-voice IBM Plex typography: geometric sans chrome framing tabular monospace wire data.",
+      "Semantic high-chroma accents reserved for selection state, Field #0 schema presence, and tag/header/payload byte boundaries.",
+      "Flat 1px structural hairlines with zero drop shadows across all panes and toolbars.",
+      "Adaptive three-tier layout scaling from a 3-pane desktop workstation down to a Master-Detail mobile inspector with an 8-byte hex grid."
+    ],
+    "rules": [
+      {
+        "name": "The Dark-Ink Accent Rule",
+        "body": "Solid Signal Orange and Acid Lime fills always carry Carbon Ink (#111111) text, never white text. Light mode frames both colored fills with a 1px solid #111111 border and crisp 1px 1px 0 #111111 offset edge so bright fills never bleed into Stone Chrome.",
+        "section": "colors"
+      },
+      {
+        "name": "The Semantic Lime Rule",
+        "body": "Acid Lime appears only when an OmniBuf payload carries inline Field #0 schema metadata; never spend it on generic success pills or decorative badges.",
+        "section": "colors"
+      },
+      {
+        "name": "The Tabular Byte Rule",
+        "body": "Every element displaying byte counts, HTTP status codes, field numbers (#1), or hexadecimal offsets applies font-variant-numeric: tabular-nums so vertical columns never jitter during selection changes.",
+        "section": "typography"
+      },
+      {
+        "name": "The Offline Font Rule",
+        "body": "Extension bundles ship local WOFF2 subsets inside dist/fonts/ with zero external stylesheet or CDN requests.",
+        "section": "typography"
+      },
+      {
+        "name": "The Zero-Blur Rule",
+        "body": "Never apply drop shadows, glow filters, or translucent backdrop blurs inside the DevTools workstation; separate regions with 1px rules and stepped slate or stone fills.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "Do pair Signal Orange (#ff4f18) and Acid Lime (#d4ff33) solid fills with Carbon Ink (#111111) text.",
+      "Do keep desktop monospace labels and byte readouts at 12px or larger with tabular-nums enabled.",
+      "Do collapse narrow viewports (< 768px) into the Master-Detail screen switcher (Traffic List vs. Request Detail) and 8-byte hex rows (< 520px) so zero horizontal overflow occurs.",
+      "Do honor prefers-reduced-motion: reduce by collapsing transition and scroll durations."
+    ],
+    "donts": [
+      "Don't stack all three workstation panes vertically on narrow viewports.",
+      "Don't load fonts, icons, or stylesheets over the network; every asset must ship inside dist/.",
+      "Don't auto-decode untagged application/proto or application/octet-stream responses without explicit user confirmation via Decode as OmniBuf or the protocol selector.",
+      "Don't introduce drop shadows, glassmorphism, or decorative gradients onto inspector surfaces."
+    ]
+  }
+}

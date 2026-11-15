@@ -1,0 +1,47 @@
+{
+  "name": "omnibuf-devtools",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Browser DevTools extension for inspecting OmniBuf HTTP, ConnectRPC, gRPC-Web, and .obuf binary payloads",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "pack": "node scripts/pack.mjs",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --project tsconfig.json --noEmit",
+    "lint": "eslint . && pnpm run typecheck",
+    "fmt": "prettier --write .",
+    "fmt:check": "prettier --check .",
+    "clean": "rm -rf dist artifacts tsconfig.tsbuildinfo"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/omnibuf/omnibuf-devtools.git"
+  },
+  "dependencies": {
+    "@omnibuf/core": "^0.1.1",
+    "@omnibuf/web": "^0.1.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@fontsource/ibm-plex-mono": "^5.2.5",
+    "@fontsource/ibm-plex-sans": "^5.2.5",
+    "@types/chrome": "^0.0.313",
+    "@types/node": "^22.10.0",
+    "esbuild": "^0.25.0",
+    "eslint": "^10.13.0",
+    "prettier": "^3.9.10",
+    "tsx": "^4.19.2",
+    "typescript": "^5.8.2",
+    "typescript-eslint": "^8.72.0"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
+  }
+}

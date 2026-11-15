@@ -1,0 +1,40 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extension:
+    name: DevTools Extension (Format, Lint, Test, Build & Pack)
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Install tools via mise
+        uses: jdx/mise-action@v5
+        with:
+          install: true
+
+      - name: Install dependencies
+        run: just install
+
+      - name: Run CI checks (fmt-check, lint, build, test)
+        run: just ci
+
+      - name: Package extension zip
+        run: just pack
+
+      - name: Upload extension artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: omnibuf-devtools
+          path: artifacts/omnibuf-devtools.zip
