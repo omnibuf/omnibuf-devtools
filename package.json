@@ -10,8 +10,6 @@
     "pack": "node scripts/pack.mjs",
     "screenshots": "node scripts/screenshots.mjs",
     "screenshots:store": "node scripts/screenshots.mjs --store",
-    "publish:chrome": "node scripts/publish-chrome.mjs",
-    "publish:firefox": "node scripts/publish-firefox.mjs",
     "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --project tsconfig.json --noEmit",
     "lint": "eslint . && pnpm run typecheck",
