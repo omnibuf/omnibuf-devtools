@@ -9,11 +9,11 @@ importers:
   .:
     dependencies:
       '@omnibuf/core':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.1.2
+        version: 0.1.2
       '@omnibuf/web':
-        specifier: ^0.1.1
-        version: 0.1.1
+        specifier: ^0.1.2
+        version: 0.1.2
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -446,16 +446,16 @@ packages:
   '@keyv/serialize@1.1.1':
     resolution: {integrity: sha512-dXn3FZhPv0US+7dtJsIi2R+c7qWYiReoEh5zUntWCf4oSpMNib8FDhSoed6m3QyZdx5hK7iLFkYk3rNxwt8vTA==}
 
-  '@omnibuf/core@0.1.1':
-    resolution: {integrity: sha512-PGO5M9vhskgUAzXg1gwjmI1r2ieRdanKk4DKT4vIXGgEeMmLj4iKpZLFVe/Qsv+4qMY7XEsHwk4Jv0VW9gGJtg==}
+  '@omnibuf/core@0.1.2':
+    resolution: {integrity: sha512-b0TWsZs+XM52YLNu6zV/k/9mMA5LENprkIEmX6WLrV64ExosWovG3WyUCWg7s1yN8FyLd45Zynxu609p+vJiUA==}
     peerDependencies:
       '@bufbuild/protobuf': '>=1.0.0 || >=2.0.0'
     peerDependenciesMeta:
       '@bufbuild/protobuf':
         optional: true
 
-  '@omnibuf/web@0.1.1':
-    resolution: {integrity: sha512-8i1CtLxgvPmim+AFG3OJeMzFTawVhDLmTW2WQYC9nTBIsyEtMW/YHfiu+9L57og/i3z3tb5UId1e5wjCFnY1qQ==}
+  '@omnibuf/web@0.1.2':
+    resolution: {integrity: sha512-o4zRfK0l83/dkiT2J23yOHjHf+Obg0F6hd4EsiVy2f+UF/fQBiVazGUEb6E8Reu6Kl+3iHUrU/dqDFvlRtxwtA==}
     peerDependencies:
       '@bufbuild/protobuf': '>=1.0.0 || >=2.0.0'
     peerDependenciesMeta:
@@ -1083,11 +1083,11 @@ snapshots:
 
   '@keyv/serialize@1.1.1': {}
 
-  '@omnibuf/core@0.1.1': {}
+  '@omnibuf/core@0.1.2': {}
 
-  '@omnibuf/web@0.1.1':
+  '@omnibuf/web@0.1.2':
     dependencies:
-      '@omnibuf/core': 0.1.1
+      '@omnibuf/core': 0.1.2
 
   '@types/chrome@0.0.313':
     dependencies:

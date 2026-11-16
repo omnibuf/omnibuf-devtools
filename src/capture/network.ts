@@ -1,5 +1,10 @@
 import { type CapturedItem, createCapturedItem } from '../inspector.js';
-import { type HeaderPair, decodeCapturedContent } from '../protocol/detect.js';
+import {
+  type DecodeCapturedContentHints,
+  type HeaderPair,
+  decodeCapturedContent,
+  normalizeHeaders,
+} from '../protocol/detect.js';
 
 interface DevToolsHarEntry {
   startedDateTime?: string;
@@ -64,21 +69,55 @@ export interface NetworkCaptureCallbacks {
 
 let nextSeq = 1;
 
+function buildDecodeHints(entry: DevToolsHarEntry): DecodeCapturedContentHints {
+  const headers = normalizeHeaders(entry.response?.headers);
+  const rawCl = headers['content-length'];
+  const clNum = rawCl !== undefined && rawCl !== '' ? Number(rawCl) : Number.NaN;
+  const contentEncoding = (headers['content-encoding'] ?? '').trim().toLowerCase();
+  const hasTransportCompression = Boolean(contentEncoding && contentEncoding !== 'identity');
+  const expectedByteLength =
+    !hasTransportCompression && Number.isFinite(clNum) && clNum >= 0
+      ? clNum
+      : entry.response?.content?.size;
+  return {
+    harEncoding: entry.response?.content?.encoding,
+    mimeType: entry.response?.content?.mimeType || headers['content-type'],
+    expectedByteLength,
+  };
+}
+
 function readEntryBody(entry: DevToolsHarEntry): Promise<{ bytes: Uint8Array; warning?: string }> {
+  const hints = buildDecodeHints(entry);
   return new Promise((resolve) => {
     if (typeof entry.getContent === 'function') {
       try {
+        const g = globalThis as Record<string, any>;
+        const usePromiseForm =
+          !g.chrome?.devtools?.network && Boolean(g.browser?.devtools?.network);
+        if (usePromiseForm) {
+          (entry.getContent as unknown as () => Promise<[string | null, string]>)()
+            .then(([content, encoding]) => {
+              resolve(decodeCapturedContent(content, encoding, hints));
+            })
+            .catch((err: unknown) => {
+              resolve({
+                bytes: new Uint8Array(0),
+                warning: `getContent() failed: ${err instanceof Error ? err.message : String(err)}`,
+              });
+            });
+          return;
+        }
+
         const maybePromise: unknown = entry.getContent((content, encoding) => {
-          resolve(decodeCapturedContent(content, encoding));
+          resolve(decodeCapturedContent(content, encoding, hints));
         });
-        // Firefox WebExtensions devtools.network.Request.getContent() returns a Promise<[content, encoding]>
         if (
           maybePromise &&
           typeof (maybePromise as Promise<[string | null, string]>).then === 'function'
         ) {
           (maybePromise as Promise<[string | null, string]>)
             .then(([content, encoding]) => {
-              resolve(decodeCapturedContent(content, encoding));
+              resolve(decodeCapturedContent(content, encoding, hints));
             })
             .catch((err: unknown) => {
               resolve({
@@ -99,7 +138,7 @@ function readEntryBody(entry: DevToolsHarEntry): Promise<{ bytes: Uint8Array; wa
 
     const harText = entry.response?.content?.text;
     const harEnc = entry.response?.content?.encoding;
-    resolve(decodeCapturedContent(harText ?? null, harEnc ?? ''));
+    resolve(decodeCapturedContent(harText ?? null, harEnc ?? '', hints));
   });
 }
 

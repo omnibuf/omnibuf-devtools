@@ -323,20 +323,78 @@ export interface CapturedBytesResult {
   warning?: string;
 }
 
+export interface DecodeCapturedContentHints {
+  harEncoding?: string | null;
+  mimeType?: string | null;
+  expectedByteLength?: number | null;
+}
+
+function isTextLikeMimeType(mediaOrHeader?: string | null): boolean {
+  const media = parseMediaType(mediaOrHeader);
+  if (!media) return false;
+  if (media.startsWith('text/')) return true;
+  return (
+    media === 'application/json' ||
+    media.endsWith('+json') ||
+    media === 'application/xml' ||
+    media.endsWith('+xml') ||
+    media === 'application/javascript' ||
+    media === 'application/x-javascript' ||
+    media === 'application/ecmascript' ||
+    media === 'application/x-www-form-urlencoded' ||
+    media === 'application/graphql'
+  );
+}
+
+function looksLikeBase64Payload(raw: string): boolean {
+  const clean = raw.replace(/[\r\n\s]/g, '');
+  if (clean.length === 0 || clean.length % 4 !== 0) return false;
+  return /^(?:[A-Za-z0-9+/_-]{4})*(?:[A-Za-z0-9+/_-]{2}==|[A-Za-z0-9+/_-]{3}=)?$/.test(clean);
+}
+
 /**
  * Converts Chrome/Firefox DevTools `request.getContent(content, encoding)` payloads
  * into raw bytes while surfacing text-encoding mangling warnings when applicable.
+ *
+ * Note: Firefox's `devtools.network.Request.getContent()` passes `response.content.mimeType`
+ * (e.g. `"application/omnibuf"`) as the second argument rather than `"base64"`, even though
+ * binary response bodies are base64-encoded in `content`.
  */
 export function decodeCapturedContent(
   content: string | null | undefined,
   encoding?: string | null,
+  hints?: DecodeCapturedContentHints,
 ): CapturedBytesResult {
   if (content === null || content === undefined || content.length === 0) {
     return { bytes: new Uint8Array(0) };
   }
   const enc = (encoding ?? '').trim().toLowerCase();
-  if (enc === 'base64') {
+  const harEnc = (hints?.harEncoding ?? '').trim().toLowerCase();
+  if (enc === 'base64' || harEnc === 'base64') {
     return { bytes: decodeMultiSegmentBase64(content) };
+  }
+
+  // Firefox passes the response MIME type (containing '/') as the 2nd argument of getContent()
+  // while base64-encoding non-text bodies.
+  if (enc.includes('/') && !isTextLikeMimeType(enc) && looksLikeBase64Payload(content)) {
+    return { bytes: decodeMultiSegmentBase64(content) };
+  }
+
+  // Fallback when encoding is omitted on a binary response whose length matches base64(Content-Length)
+  if (
+    enc === '' &&
+    !isTextLikeMimeType(hints?.mimeType) &&
+    typeof hints?.expectedByteLength === 'number' &&
+    hints.expectedByteLength > 0
+  ) {
+    const cleanLen = content.replace(/[\r\n\s]/g, '').length;
+    if (
+      cleanLen > hints.expectedByteLength &&
+      cleanLen === Math.ceil(hints.expectedByteLength / 3) * 4 &&
+      looksLikeBase64Payload(content)
+    ) {
+      return { bytes: decodeMultiSegmentBase64(content) };
+    }
   }
 
   let maxCode = 0;

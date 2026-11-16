@@ -1,6 +1,6 @@
 {
   "name": "omnibuf-devtools",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Browser DevTools extension for inspecting OmniBuf HTTP, ConnectRPC, gRPC-Web, and .obuf binary payloads",
   "type": "module",
@@ -22,8 +22,8 @@
     "url": "git+https://github.com/omnibuf/omnibuf-devtools.git"
   },
   "dependencies": {
-    "@omnibuf/core": "^0.1.1",
-    "@omnibuf/web": "^0.1.1"
+    "@omnibuf/core": "^0.1.2",
+    "@omnibuf/web": "^0.1.2"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",

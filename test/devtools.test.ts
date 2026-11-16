@@ -142,6 +142,29 @@ describe('Layer 1: Content-Type, URL extension, and DevTools capture decoding', 
       decodeMultiSegmentBase64(combinedB64),
       Uint8Array.from([1, 2, 3, 4, 5, 6, 7, 8, 9]),
     );
+
+    // Firefox WebExtensions quirk: getContent(content, mimeType) passes MIME type as 2nd arg
+    // while base64-encoding binary responses (e.g. 720 raw bytes -> 960 base64 chars)
+    const raw720 = new Uint8Array(720);
+    for (let i = 0; i < raw720.length; i++) raw720[i] = (i * 37 + 0x19) & 0xff;
+    const b64Of720 = uint8ArrayToBase64(raw720);
+    assert.equal(b64Of720.length, 960);
+
+    const ffMime = decodeCapturedContent(b64Of720, 'application/omnibuf');
+    assert.equal(ffMime.bytes.byteLength, 720);
+    assert.deepEqual(ffMime.bytes, raw720);
+
+    const ffEmptyEncWithLength = decodeCapturedContent(b64Of720, '', {
+      mimeType: 'application/omnibuf',
+      expectedByteLength: 720,
+    });
+    assert.equal(ffEmptyEncWithLength.bytes.byteLength, 720);
+    assert.deepEqual(ffEmptyEncWithLength.bytes, raw720);
+
+    // Firefox JSON error body with MIME type as 2nd arg stays plain UTF-8 text
+    const jsonText = '{"code":"not_found","message":"unknown route"}';
+    const ffJson = decodeCapturedContent(jsonText, 'application/json');
+    assert.equal(new TextDecoder().decode(ffJson.bytes), jsonText);
   });
 });
 
