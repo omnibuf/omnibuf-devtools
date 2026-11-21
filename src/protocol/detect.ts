@@ -38,7 +38,7 @@ export interface TrafficClassification {
 export function normalizeHeaders(
   input?: HeaderPair[] | Record<string, string> | null,
 ): Record<string, string> {
-  const out: Record<string, string> = {};
+  const out: Record<string, string> = Object.create(null);
   if (!input) return out;
   if (Array.isArray(input)) {
     for (const pair of input) {

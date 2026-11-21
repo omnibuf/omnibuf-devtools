@@ -358,9 +358,9 @@ describe('Layer 3: Recursive OmniBuf field tree, byte offsets, and JSON export',
       assert.ok(b >= hit.node.offset && b < hit.node.offset + hit.node.byteLength);
     }
 
-    // 64-bit integer > MAX_SAFE_INTEGER serializes losslessly as string in JSON export
+    // 64-bit integer > MAX_SAFE_INTEGER serializes losslessly as an exact unquoted JSON literal
+    assert.ok(decoded.jsonText.includes('"id": 9007199254740999'));
     const parsedJson = JSON.parse(decoded.jsonText) as Record<string, unknown>;
-    assert.equal(parsedJson.id, '9007199254740999');
     assert.equal(parsedJson.name, 'core-router');
     assert.deepEqual(parsedJson.ports, [80, 443, 8443]);
   });

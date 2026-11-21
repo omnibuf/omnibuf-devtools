@@ -32,7 +32,7 @@ import {
   readLenSlice,
   roundFloat32Shortest,
   setStringCodec,
-  uint8ArrayToBase64,
+  stringifyBlindJSON,
 } from '@omnibuf/core';
 import { BrowserStringCodec, toHex, wireTypeName } from '@omnibuf/web';
 
@@ -694,26 +694,11 @@ function buildMessageNodes(
 }
 
 /**
- * Serializes any decoded blind value to JSON, preserving safe integers as JSON numbers
- * and formatting 64-bit `bigint` values outside JS safe integer range as decimal strings.
+ * Serializes any decoded blind value to JSON, emitting exact unquoted 64-bit `bigint`
+ * numeric literals matching `stringifyBlindJSON`.
  */
 export function formatDecodedJson(value: unknown, indent = 2): string {
-  return JSON.stringify(
-    value,
-    (_key, val: unknown) => {
-      if (typeof val === 'bigint') {
-        if (val >= -9007199254740991n && val <= 9007199254740991n) {
-          return Number(val);
-        }
-        return val.toString(10);
-      }
-      if (val instanceof Uint8Array) {
-        return uint8ArrayToBase64(val);
-      }
-      return val;
-    },
-    indent,
-  );
+  return stringifyBlindJSON(value, indent, false);
 }
 
 /**
