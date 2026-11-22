@@ -10,7 +10,7 @@ importers:
     dependencies:
       '@omnibuf/core':
         specifier: ^0.1.2
-        version: 0.1.2
+        version: 0.1.3
       '@omnibuf/web':
         specifier: ^0.1.2
         version: 0.1.2
@@ -448,6 +448,14 @@ packages:
 
   '@omnibuf/core@0.1.2':
     resolution: {integrity: sha512-b0TWsZs+XM52YLNu6zV/k/9mMA5LENprkIEmX6WLrV64ExosWovG3WyUCWg7s1yN8FyLd45Zynxu609p+vJiUA==}
+    peerDependencies:
+      '@bufbuild/protobuf': '>=1.0.0 || >=2.0.0'
+    peerDependenciesMeta:
+      '@bufbuild/protobuf':
+        optional: true
+
+  '@omnibuf/core@0.1.3':
+    resolution: {integrity: sha512-OWbUnZX7AyMQIXV/6D0BU03h5Ysq1aGJf2iSJewJAHwRKgYl3XBJhG/BUuM23ijCJIocL0fDIfr7yBK4hPr9rw==}
     peerDependencies:
       '@bufbuild/protobuf': '>=1.0.0 || >=2.0.0'
     peerDependenciesMeta:
@@ -1084,6 +1092,8 @@ snapshots:
   '@keyv/serialize@1.1.1': {}
 
   '@omnibuf/core@0.1.2': {}
+
+  '@omnibuf/core@0.1.3': {}
 
   '@omnibuf/web@0.1.2':
     dependencies:
