@@ -13,7 +13,7 @@ importers:
         version: 0.1.3
       '@omnibuf/web':
         specifier: ^0.1.2
-        version: 0.1.3
+        version: 0.1.4
     devDependencies:
       '@eslint/js':
         specifier: ^10.0.1
@@ -454,8 +454,16 @@ packages:
       '@bufbuild/protobuf':
         optional: true
 
-  '@omnibuf/web@0.1.3':
-    resolution: {integrity: sha512-Ylw2lsiBKjz0oeXYELwBIfDkVE1frktz5ReyLt4jpr2VLO9gqInCljgXG75vNPZbMhLMnWJdr+u374IDw0biLg==}
+  '@omnibuf/core@0.1.4':
+    resolution: {integrity: sha512-n8ktqaLk3EM9BNJmMy6jOB8d1wlEiOK36XEzA2HVNFnr7GS4yi/nk5BXGuhlU1Ksci6W+96DkFPMg4hp5/0Gew==}
+    peerDependencies:
+      '@bufbuild/protobuf': '>=1.0.0 || >=2.0.0'
+    peerDependenciesMeta:
+      '@bufbuild/protobuf':
+        optional: true
+
+  '@omnibuf/web@0.1.4':
+    resolution: {integrity: sha512-aOn3gZcbn4F9+XA3VysERa9YKyZxkQgsc0sRBBrz5FOJ+kgcwEx320V0GhLNUFVJElePrPZBnwbiw8aB4v+T7g==}
     peerDependencies:
       '@bufbuild/protobuf': '>=1.0.0 || >=2.0.0'
     peerDependenciesMeta:
@@ -1085,9 +1093,11 @@ snapshots:
 
   '@omnibuf/core@0.1.3': {}
 
-  '@omnibuf/web@0.1.3':
+  '@omnibuf/core@0.1.4': {}
+
+  '@omnibuf/web@0.1.4':
     dependencies:
-      '@omnibuf/core': 0.1.3
+      '@omnibuf/core': 0.1.4
 
   '@types/chrome@0.0.313':
     dependencies:
