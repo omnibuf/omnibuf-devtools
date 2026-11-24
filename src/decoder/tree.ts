@@ -724,6 +724,7 @@ export function decodeOmniBufTree(
     0,
   );
   const userFieldCount = nodes.filter((n) => n.kind !== 'schema').length;
+  let cachedJsonText: string | null = null;
 
   return {
     byteLength: packet.byteLength,
@@ -731,7 +732,12 @@ export function decodeOmniBufTree(
     typeName: schema?.typeName,
     nodes,
     jsonValue,
-    jsonText: formatDecodedJson(jsonValue, 2),
+    get jsonText(): string {
+      if (cachedJsonText === null) {
+        cachedJsonText = formatDecodedJson(jsonValue, 2);
+      }
+      return cachedJsonText;
+    },
     fieldCount: userFieldCount,
   };
 }

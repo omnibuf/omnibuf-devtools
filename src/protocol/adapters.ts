@@ -86,7 +86,7 @@ function parseConnectErrorObject(obj: Record<string, unknown>): ConnectErrorBody
 
 function parseGrpcTrailers(bytes: Uint8Array): Record<string, string> {
   const text = utf8Decoder.decode(bytes);
-  const trailers: Record<string, string> = {};
+  const trailers: Record<string, string> = Object.create(null) as Record<string, string>;
   for (const rawLine of text.split(/\r?\n/)) {
     const line = rawLine.trim();
     if (!line) continue;
@@ -101,7 +101,7 @@ function parseGrpcTrailers(bytes: Uint8Array): Record<string, string> {
         // Keep raw header value if percent-encoding is malformed
       }
     }
-    trailers[key] = key in trailers ? `${trailers[key]}, ${val}` : val;
+    trailers[key] = Object.hasOwn(trailers, key) ? `${trailers[key]}, ${val}` : val;
   }
   return trailers;
 }

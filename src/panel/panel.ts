@@ -46,6 +46,9 @@ interface PanelState {
   inspectSeq: number;
 }
 
+const MAX_CAPTURED_ITEMS = 500;
+const MAX_LOCAL_FILE_BYTES = 32 * 1024 * 1024;
+
 const state: PanelState = {
   items: [],
   bodyLoaders: new Map(),
@@ -238,6 +241,23 @@ function syncLayoutAttributes(): void {
   backBtn.replaceChildren(createBackArrowIcon(), document.createTextNode('Requests'));
 
   el<HTMLElement>('demo-badge').hidden = !state.items.some((i) => i.source === 'synthetic');
+}
+
+function trimCapturedItems(): void {
+  if (state.items.length <= MAX_CAPTURED_ITEMS) return;
+  const overflow = state.items.length - MAX_CAPTURED_ITEMS;
+  const evicted = state.items.splice(0, overflow);
+  let selectedEvicted = false;
+  for (const item of evicted) {
+    state.bodyLoaders.delete(item.id);
+    if (item.id === state.selectedItemId) {
+      selectedEvicted = true;
+    }
+  }
+  if (selectedEvicted) {
+    state.selectedItemId = null;
+    state.inspected = null;
+  }
 }
 
 function getSelectedItem(): CapturedItem | null {
@@ -752,8 +772,15 @@ function formatHoverMeta(node: FieldTreeNode): string {
   return parts.join(' · ');
 }
 
-function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEnvelopeView): void {
+function renderFieldTree(
+  decoded: DecodedOmniBufMessage,
+  activeView: InspectedEnvelopeView,
+  restoreFocus = false,
+): void {
   const viewport = el<HTMLElement>('main-viewport');
+  const hadTreeFocus =
+    restoreFocus ||
+    (document.activeElement instanceof HTMLElement && viewport.contains(document.activeElement));
   viewport.replaceChildren();
 
   if (decoded.byteLength === 0) {
@@ -838,9 +865,8 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
       }
       state.selectedNodeId = node.id;
       state.hexWindowStart = alignHexWindow(node.offset);
-      renderFieldTree(decoded, activeView);
+      renderFieldTree(decoded, activeView, true);
       renderHexPane(getSelectedItem(), activeView);
-      treeEl.focus({ preventScroll: true });
     });
 
     rowElements.set(node.id, row);
@@ -916,6 +942,9 @@ function renderFieldTree(decoded: DecodedOmniBufMessage, activeView: InspectedEn
 
   treeEl.appendChild(frag);
   viewport.appendChild(treeEl);
+  if (hadTreeFocus) {
+    treeEl.focus({ preventScroll: true });
+  }
 
   const selectedEl = state.selectedNodeId ? rowElements.get(state.selectedNodeId) : null;
   if (selectedEl) {
@@ -1189,26 +1218,50 @@ async function importObufFiles(files: FileList | File[]): Promise<void> {
   if (list.length === 0) return;
 
   let firstNewId: string | null = null;
+  let importedCount = 0;
+  let skippedOversize = 0;
+  let failedCount = 0;
+  let lastImportedName = '';
+
   for (const file of list) {
-    const buf = new Uint8Array(await file.arrayBuffer());
-    const id = `file-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
-    const item = createCapturedItem({
-      id,
-      source: 'file',
-      url: `file:///${file.name}`,
-      method: 'FILE',
-      status: 200,
-      mimeType: 'application/x-omnibuf',
-      body: buf,
-      manualOverride: true,
-    });
-    state.items.push(item);
-    if (!firstNewId) firstNewId = id;
+    if (file.size > MAX_LOCAL_FILE_BYTES) {
+      skippedOversize++;
+      continue;
+    }
+    try {
+      const buf = new Uint8Array(await file.arrayBuffer());
+      const id = `file-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+      const item = createCapturedItem({
+        id,
+        source: 'file',
+        url: `file:///${file.name}`,
+        method: 'FILE',
+        status: 200,
+        mimeType: 'application/x-omnibuf',
+        body: buf,
+        manualOverride: true,
+      });
+      state.items.push(item);
+      trimCapturedItems();
+      if (!firstNewId) firstNewId = id;
+      importedCount++;
+      lastImportedName = file.name;
+    } catch {
+      failedCount++;
+    }
   }
 
   if (firstNewId) {
     await selectItem(firstNewId);
-    showToast(`Opened ${list.length === 1 ? list[0]!.name : `${list.length} files`}`);
+  }
+  if (skippedOversize > 0 || failedCount > 0) {
+    const parts: string[] = [];
+    if (importedCount > 0) parts.push(`opened ${importedCount}`);
+    if (skippedOversize > 0) parts.push(`skipped ${skippedOversize} over 32 MB`);
+    if (failedCount > 0) parts.push(`failed to read ${failedCount}`);
+    showToast(parts.join(' · '));
+  } else if (importedCount > 0) {
+    showToast(`Opened ${importedCount === 1 ? lastImportedName : `${importedCount} files`}`);
   }
 }
 
@@ -1216,6 +1269,7 @@ async function loadSyntheticSamples(): Promise<void> {
   state.items = state.items.filter((i) => i.source !== 'synthetic');
   const fixtures = await buildSyntheticTrafficFixtures();
   state.items.push(...fixtures);
+  trimCapturedItems();
   renderRequestList();
   if (fixtures[0]) {
     await selectItem(fixtures[0].id);
@@ -1474,6 +1528,7 @@ async function bootstrap(): Promise<void> {
     onItemCaptured(item, loadBody) {
       state.items.push(item);
       state.bodyLoaders.set(item.id, loadBody);
+      trimCapturedItems();
       renderRequestList();
       if (!state.selectedItemId && item.classification.detected) {
         void selectItem(item.id);
@@ -1487,7 +1542,15 @@ async function bootstrap(): Promise<void> {
     },
     onNavigated() {
       if (state.preserveLog) return;
-      state.items = state.items.filter((i) => i.source !== 'network');
+      const remaining: CapturedItem[] = [];
+      for (const item of state.items) {
+        if (item.source === 'network') {
+          state.bodyLoaders.delete(item.id);
+        } else {
+          remaining.push(item);
+        }
+      }
+      state.items = remaining;
       if (state.selectedItemId && !state.items.some((i) => i.id === state.selectedItemId)) {
         state.selectedItemId = null;
         state.inspected = null;
