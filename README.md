@@ -20,12 +20,12 @@ Open Developer Tools and select the **OmniBuf** panel.
 
 ## Supported Transports
 
-| Transport | Media Types / Triggers |
-| :--- | :--- |
-| HTTP / REST & local files | `application/omnibuf`, `application/x-omnibuf`, `application/vnd.omnibuf`, `*.obuf`, `*.obuf.gz` |
-| ConnectRPC unary | `application/omnibuf` with `Connect-Protocol-Version` or `Connect-Content-Encoding` |
-| ConnectRPC streaming | `application/connect+omnibuf`, `application/connect+x-omnibuf` (5-byte envelopes, `gzip`/`deflate`, `EndStreamResponse`) |
-| gRPC-Web / gRPC-Web Text | `application/grpc-web+omnibuf`, `application/grpc-web-text+omnibuf` (binary/base64 frames, `0x80` trailers) |
+| Transport                 | Media Types / Triggers                                                                                                   |
+| :------------------------ | :----------------------------------------------------------------------------------------------------------------------- |
+| HTTP / REST & local files | `application/omnibuf`, `application/x-omnibuf`, `application/vnd.omnibuf`, `*.obuf`, `*.obuf.gz`                         |
+| ConnectRPC unary          | `application/omnibuf` with `Connect-Protocol-Version` or `Connect-Content-Encoding`                                      |
+| ConnectRPC streaming      | `application/connect+omnibuf`, `application/connect+x-omnibuf` (5-byte envelopes, `gzip`/`deflate`, `EndStreamResponse`) |
+| gRPC-Web / gRPC-Web Text  | `application/grpc-web+omnibuf`, `application/grpc-web-text+omnibuf` (binary/base64 frames, `0x80` trailers)              |
 
 Untagged binary responses (`application/octet-stream`) can be decoded on demand by switching capture scope to **All HTTP** and clicking **Decode as OmniBuf**.
 
