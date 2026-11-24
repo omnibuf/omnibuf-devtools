@@ -1,6 +1,6 @@
 {
   "name": "omnibuf-devtools",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "Browser DevTools extension for inspecting OmniBuf HTTP, ConnectRPC, gRPC-Web, and .obuf binary payloads",
   "type": "module",
