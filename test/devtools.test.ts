@@ -5,7 +5,16 @@ import path from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { deflateRawSync, deflateSync, gzipSync } from 'node:zlib';
-import { defineMessage, uint8ArrayToBase64 } from '@omnibuf/core';
+import {
+  Encoder,
+  WireBoolFalse,
+  WireBytes,
+  WireSint,
+  WireString,
+  WireSubMsg,
+  defineMessage,
+  uint8ArrayToBase64,
+} from '@omnibuf/core';
 import { decodeOmniBufTree, findNodeAtByteOffset, formatDecodedJson } from '../src/decoder/tree.js';
 import { buildSyntheticTrafficFixtures } from '../src/demo/fixtures.js';
 import { createCapturedItem, inspectCapturedItem } from '../src/inspector.js';
@@ -400,6 +409,112 @@ describe('Layer 3: Recursive OmniBuf field tree, byte offsets, and JSON export',
     assert.deepEqual(JSON.parse(inspected.envelopes[0]!.decoded!.jsonText), {
       city: 'Vienna',
       rack: 14,
+    });
+  });
+
+  it('decodes an Editions 2026 self-describing packet with explicit zeros, DELIMITED submessage, open enum, and zero oneof', async () => {
+    const DelimitedChild = defineMessage<{ id: number; note: string }>('ed2026.DelimitedChild', {
+      id: { fieldNum: 1, type: 'int32' },
+      note: { fieldNum: 2, type: 'string' },
+    });
+    const Editions2026Record = defineMessage<{
+      explicit_int: number;
+      explicit_bool: boolean;
+      explicit_string: string;
+      explicit_bytes: Uint8Array;
+      delimited_child: { id: number; note: string };
+      status: number;
+      choice_int: number;
+    }>('ed2026.Record', {
+      explicit_int: { fieldNum: 1, type: 'int32' },
+      explicit_bool: { fieldNum: 2, type: 'bool' },
+      explicit_string: { fieldNum: 3, type: 'string' },
+      explicit_bytes: { fieldNum: 4, type: 'bytes' },
+      delimited_child: { fieldNum: 5, type: 'submsg', subSchema: DelimitedChild },
+      status: { fieldNum: 6, type: 'enum' },
+      choice_int: { fieldNum: 7, type: 'int32', oneof: 'choice' },
+    });
+
+    // Build exact Editions 2026 wire bytes: Field #0 SchemaMeta + explicit zeros,
+    // DELIMITED submessage encoded as WireSubMsg, negative open enum, active zero oneof.
+    const enc = new Encoder(128);
+    enc.writeRaw(Editions2026Record.getField0Bytes(true));
+    enc.writeInt(1, 0);
+    enc.writeBool(2, false);
+    enc.writeString(3, '');
+    enc.writeBytes(4, new Uint8Array(0));
+    enc.beginSubMsg(5);
+    enc.writeInt(1, 42);
+    enc.writeString(2, 'delimited-2026');
+    enc.endSubMsg();
+    enc.writeInt(6, -7);
+    enc.writeInt(7, 0);
+    const pkt = enc.finish();
+
+    const decoded = decodeOmniBufTree(pkt);
+    assert.equal(decoded.byteLength, pkt.byteLength);
+    assert.equal(decoded.typeName, 'Record');
+    assert.equal(decoded.fieldCount, 7);
+
+    const byLabel = new Map(decoded.nodes.map((n) => [n.label, n]));
+    assert.equal(byLabel.get('explicit_int')?.wireType, WireSint);
+    assert.equal(byLabel.get('explicit_int')?.scalarValue, 0);
+
+    assert.equal(byLabel.get('explicit_bool')?.wireType, WireBoolFalse);
+    assert.equal(byLabel.get('explicit_bool')?.wireTypeLabel, 'bool=0');
+    assert.equal(byLabel.get('explicit_bool')?.scalarValue, false);
+
+    assert.equal(byLabel.get('explicit_string')?.wireType, WireString);
+    assert.equal(byLabel.get('explicit_string')?.scalarValue, '');
+
+    assert.equal(byLabel.get('explicit_bytes')?.wireType, WireBytes);
+    assert.equal(byLabel.get('explicit_bytes')?.summary, 'Uint8Array(0)');
+
+    const delimNode = byLabel.get('delimited_child');
+    assert.ok(delimNode);
+    assert.equal(delimNode.wireType, WireSubMsg);
+    assert.equal(delimNode.children.length, 2);
+    assert.equal(delimNode.children[0]!.label, 'id');
+    assert.equal(delimNode.children[0]!.scalarValue, 42);
+    assert.equal(delimNode.children[1]!.label, 'note');
+    assert.equal(delimNode.children[1]!.scalarValue, 'delimited-2026');
+
+    assert.equal(byLabel.get('status')?.wireType, WireSint);
+    assert.equal(byLabel.get('status')?.scalarValue, -7);
+
+    assert.equal(byLabel.get('choice_int')?.wireType, WireSint);
+    assert.equal(byLabel.get('choice_int')?.scalarValue, 0);
+
+    for (let b = 0; b < pkt.byteLength; b++) {
+      const hit = findNodeAtByteOffset(decoded.nodes, b, true);
+      assert.ok(hit, `Expected node hit at byte ${b}`);
+    }
+
+    const item = createCapturedItem({
+      id: 'editions-2026-connect',
+      source: 'network',
+      url: 'https://api.example.com/ed2026.RecordService/GetRecord',
+      method: 'POST',
+      status: 200,
+      responseHeaders: {
+        'content-type': 'application/omnibuf',
+        'connect-protocol-version': '1',
+      },
+      body: pkt,
+    });
+    const inspected = await inspectCapturedItem(item);
+    assert.equal(inspected.protocol, 'connect-unary');
+    assert.equal(inspected.warnings.length, 0);
+    assert.equal(inspected.envelopes.length, 1);
+    assert.equal(inspected.envelopes[0]!.decodeError, undefined);
+    assert.deepEqual(JSON.parse(inspected.envelopes[0]!.decoded!.jsonText), {
+      explicit_int: 0,
+      explicit_bool: false,
+      explicit_string: '',
+      explicit_bytes: '',
+      delimited_child: { id: 42, note: 'delimited-2026' },
+      status: -7,
+      choice_int: 0,
     });
   });
 
