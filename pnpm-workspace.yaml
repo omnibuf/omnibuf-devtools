@@ -1,4 +1,7 @@
 allowBuilds:
   esbuild: true
+minimumReleaseAgeExclude:
+  - '@omnibuf/core@0.1.13'
+  - '@omnibuf/web@0.1.13'
 onlyBuiltDependencies:
   - esbuild
